@@ -10,6 +10,7 @@ local _, class = UnitClass("player")
 local defaultClassColor = RAID_CLASS_COLORS[class]
 local ringColor = CursorRingDB.ringColor or {r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b}
 local castColor = CursorRingDB.castColor or {r = 1, g = 1, b = 1} -- Default to white
+local showOutOfCombat = CursorRingDB.showOutOfCombat or CursorRingDB.showOutOfCombat == nil and true -- Default to true
 
 local addon = CreateFrame("Frame")
 addon:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -20,6 +21,9 @@ addon:RegisterEvent("UNIT_SPELLCAST_FAILED")
 addon:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
+addon:RegisterEvent("PLAYER_REGEN_DISABLED") -- Entering combat
+addon:RegisterEvent("PLAYER_REGEN_ENABLED")  -- Leaving combat
+addon:RegisterEvent("ZONE_CHANGED_NEW_AREA") -- Zone changes (for instance detection)
 addon:RegisterEvent("PLAYER_LOGIN")
 addon:RegisterEvent("ADDON_LOADED")
 
@@ -53,6 +57,42 @@ end
 local function UpdateCastColor(r, g, b)
     castColor.r, castColor.g, castColor.b = r, g, b
     CursorRingDB.castColor = castColor
+end
+
+-- Function to check if ring should be visible
+local function ShouldShowRing()
+    -- Always show in combat
+    if InCombatLockdown() then
+        return true
+    end
+    
+    -- Always show in instances (dungeons, raids, battlegrounds, arenas)
+    local inInstance, instanceType = IsInInstance()
+    if inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena") then
+        return true
+    end
+    
+    -- Otherwise, use the user setting
+    return showOutOfCombat
+end
+
+-- Function to update ring visibility based on current conditions
+local function UpdateRingVisibility()
+    if not ring or not ring:GetParent() then return end
+    
+    local shouldShow = ShouldShowRing()
+    if shouldShow then
+        ring:GetParent():Show()
+    else
+        ring:GetParent():Hide()
+    end
+end
+
+-- Function to update out of combat visibility setting
+local function UpdateShowOutOfCombat(show)
+    showOutOfCombat = show
+    CursorRingDB.showOutOfCombat = show
+    UpdateRingVisibility()
 end
 
 -- Function to create the cursor ring frame
@@ -184,6 +224,9 @@ local function CreateCursorRing()
             rightHalf:SetVertexColor(1,1,1,0)
         end
     end)
+    
+    -- Set initial visibility based on current conditions
+    UpdateRingVisibility()
 end
 
 -- Function to create the options panel (this was a pain in the ass. Make sure you rip code off of newer addons next time dumbass)
@@ -314,13 +357,26 @@ local function CreateOptionsPanel()
     -- Reset to Class Color Button
     local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetButton:SetPoint("TOPLEFT", castColorLabel, "BOTTOMLEFT", 0, -40)
-    resetButton:SetSize(170, 25)
+    resetButton:SetSize(150, 25)
     resetButton:SetText("Reset Ring to Class Color")
     resetButton:SetScript("OnClick", function()
         local _, class = UnitClass("player")
         local classColor = RAID_CLASS_COLORS[class]
         ringColorTexture:SetColorTexture(classColor.r, classColor.g, classColor.b, 1)
         UpdateRingColor(classColor.r, classColor.g, classColor.b)
+    end)
+
+    -- Show Out of Combat Checkbox
+    local outOfCombatCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    outOfCombatCheckbox:SetPoint("TOPLEFT", resetButton, "BOTTOMLEFT", 0, -20)
+    
+    local outOfCombatLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    outOfCombatLabel:SetPoint("LEFT", outOfCombatCheckbox, "RIGHT", 5, 0)
+    outOfCombatLabel:SetText("Show ring outside of combat/instances")
+    
+    outOfCombatCheckbox:SetChecked(showOutOfCombat)
+    outOfCombatCheckbox:SetScript("OnClick", function(self)
+        UpdateShowOutOfCombat(self:GetChecked())
     end)
 
     -- This is the part you mucked up by using an old API
@@ -379,6 +435,11 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
             -- Debug
             -- print("Cast ended:", event)
         end
+
+    elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or 
+           event == "ZONE_CHANGED_NEW_AREA" then
+        -- Combat or zone changed, update ring visibility
+        UpdateRingVisibility()
 
     elseif event == "PLAYER_LOGIN" or (event == "ADDON_LOADED" and arg1 == "CursorRing") then
         CreateOptionsPanel()
