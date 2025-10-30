@@ -23,10 +23,13 @@ addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
 addon:RegisterEvent("PLAYER_LOGIN")
 addon:RegisterEvent("ADDON_LOADED")
 
-local ring, leftHalf, rightHalf
+local ring, leftHalf, rightHalf, castSegments
 local casting = false
 local castStart, castEnd = 0, 0
 local panelLoaded = false
+
+-- Number of segments for the cast bar (100 segments for 1/100th textures)
+local NUM_CAST_SEGMENTS = 100
 
 -- Function to update ring size
 local function UpdateRingSize(size)
@@ -66,13 +69,29 @@ local function CreateCursorRing()
     ringTex:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
     ring = ringTex
 
-    -- Left semicircle for the very bad castbar "animation"
+    -- Create cast progress segments (assuming you'll provide a cast_segment.tga texture)
+    castSegments = {}
+    for i = 1, NUM_CAST_SEGMENTS do
+        local segment = f:CreateTexture(nil, "OVERLAY")
+        segment:SetTexture("Interface\\AddOns\\CursorRing\\cast_segment.tga", "CLAMP")
+        segment:SetAllPoints()
+        
+        -- Calculate rotation for this segment (18 degrees per segment for 20 segments)
+        local angle = (i - 1) * (360 / NUM_CAST_SEGMENTS)
+        segment:SetRotation(math.rad(angle))
+        
+        -- Start hidden
+        segment:SetVertexColor(1, 1, 1, 0)
+        
+        castSegments[i] = segment
+    end
+
+    -- Keep the old textures hidden for backwards compatibility (in case cast_segment.tga doesn't exist)
     leftHalf = f:CreateTexture(nil, "OVERLAY")
     leftHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_left.tga", "CLAMP")
     leftHalf:SetAllPoints()
     leftHalf:SetVertexColor(1,1,1,0)
 
-    -- Right semicircle for the very bad castbar "animation"
     rightHalf = f:CreateTexture(nil, "OVERLAY")
     rightHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_right.tga", "CLAMP")
     rightHalf:SetAllPoints()
@@ -101,26 +120,66 @@ local function CreateCursorRing()
             else
                 -- No cast detected, stop casting state
                 casting = false
+                -- Hide all segments
+                if castSegments then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                    end
+                end
+                -- Hide old halves too
                 leftHalf:SetVertexColor(1,1,1,0)
                 rightHalf:SetVertexColor(1,1,1,0)
                 return
             end
             
             progress = math.min(math.max(progress, 0), 1)
-            local angle = progress * 360
-
-            leftHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-            rightHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-
-            if angle <= 180 then
-                rightHalf:SetRotation(math.rad(angle))
-                leftHalf:SetRotation(0)
+            
+            -- Use segmented progress if cast_segment.tga exists, otherwise fall back to old method
+            if castSegments and castSegments[1]:GetTexture() then
+                -- Calculate how many segments to show
+                local segmentsToShow = math.floor(progress * NUM_CAST_SEGMENTS)
+                
+                for i = 1, NUM_CAST_SEGMENTS do
+                    if i <= segmentsToShow then
+                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+                    else
+                        castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                    end
+                end
+                
+                -- Hide old halves when using segments
                 leftHalf:SetVertexColor(1,1,1,0)
+                rightHalf:SetVertexColor(1,1,1,0)
             else
-                rightHalf:SetRotation(math.rad(180))
-                leftHalf:SetRotation(math.rad(angle - 180))
+                -- Fallback to old spinning halves method
+                local angle = progress * 360
+
+                leftHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+                rightHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+
+                if angle <= 180 then
+                    rightHalf:SetRotation(math.rad(angle))
+                    leftHalf:SetRotation(0)
+                    leftHalf:SetVertexColor(1,1,1,0)
+                else
+                    rightHalf:SetRotation(math.rad(180))
+                    leftHalf:SetRotation(math.rad(angle - 180))
+                end
+                
+                -- Hide segments when using old method
+                if castSegments then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                    end
+                end
             end
         else
+            -- Hide everything when not casting
+            if castSegments then
+                for i = 1, NUM_CAST_SEGMENTS do
+                    castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                end
+            end
             leftHalf:SetVertexColor(1,1,1,0)
             rightHalf:SetVertexColor(1,1,1,0)
         end
