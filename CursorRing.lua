@@ -10,6 +10,10 @@ addon:RegisterEvent("PLAYER_ENTERING_WORLD")
 addon:RegisterEvent("UNIT_SPELLCAST_START")
 addon:RegisterEvent("UNIT_SPELLCAST_STOP")
 addon:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+addon:RegisterEvent("UNIT_SPELLCAST_FAILED")
+addon:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
+addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
 addon:RegisterEvent("PLAYER_LOGIN")
 addon:RegisterEvent("ADDON_LOADED")
 
@@ -64,9 +68,28 @@ local function CreateCursorRing()
 
         if casting then
             local now = GetTime()
-            local p = (now - castStart) / (castEnd - castStart)
-            p = math.min(math.max(p, 0), 1)
-            local angle = p * 360
+            local progress = 0
+            
+            -- Check if we're currently casting or channeling
+            local castName, _, _, castStartTime, castEndTime = UnitCastingInfo("player")
+            local channelName, _, _, channelStartTime, channelEndTime = UnitChannelInfo("player")
+            
+            if castName then
+                -- Regular cast
+                progress = (now - (castStartTime / 1000)) / ((castEndTime - castStartTime) / 1000)
+            elseif channelName then
+                -- Channeled spell (progress goes from 1 to 0)
+                progress = 1 - ((now - (channelStartTime / 1000)) / ((channelEndTime - channelStartTime) / 1000))
+            else
+                -- No cast detected, stop casting state
+                casting = false
+                leftHalf:SetVertexColor(1,1,1,0)
+                rightHalf:SetVertexColor(1,1,1,0)
+                return
+            end
+            
+            progress = math.min(math.max(progress, 0), 1)
+            local angle = progress * 360
 
             leftHalf:SetVertexColor(pcol.r, pcol.g, pcol.b, 1)
             rightHalf:SetVertexColor(pcol.r, pcol.g, pcol.b, 1)
@@ -114,10 +137,17 @@ local function CreateOptionsPanel()
     if Settings and Settings.RegisterAddOnCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
         Settings.RegisterAddOnCategory(category)
-    elseif InterfaceOptions_AddCategory then
-        InterfaceOptions_AddCategory(panel)
     else
-        print("CursorRing: Could not register options panel (unsupported client version).")
+        -- Fallback for older clients - try to use the old interface if it exists
+        local success = pcall(function()
+            local oldAPI = _G["InterfaceOptions_AddCategory"]
+            if oldAPI then
+                oldAPI(panel)
+            end
+        end)
+        if not success then
+            print("CursorRing: Could not register options panel (unsupported client version).")
+        end
     end
 end
 
@@ -127,7 +157,7 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
         CreateCursorRing()
 
     elseif event == "UNIT_SPELLCAST_START" then
-        local unit = ...
+        local unit = arg1
         if unit == "player" then
             local name, _, _, startTime, endTime = UnitCastingInfo("player")
             if name then
@@ -136,14 +166,32 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
                 local powerType = UnitPowerType("player")
                 pcol = PowerBarColor[powerType] or {r=1,g=1,b=1}
                 -- Debug
-                -- print("Casting started:", name)
+                -- print("Regular cast started:", name)
             end
         end
 
-    elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" then
-        local unit = ...
+    elseif event == "UNIT_SPELLCAST_CHANNEL_START" then
+        local unit = arg1
+        if unit == "player" then
+            local name, _, _, startTime, endTime = UnitChannelInfo("player")
+            if name then
+                casting = true
+                castStart, castEnd = startTime / 1000, endTime / 1000
+                local powerType = UnitPowerType("player")
+                pcol = PowerBarColor[powerType] or {r=1,g=1,b=1}
+                -- Debug
+                -- print("Channel started:", name)
+            end
+        end
+
+    elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or 
+           event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_SUCCEEDED" or
+           event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+        local unit = arg1
         if unit == "player" then
             casting = false
+            -- Debug
+            -- print("Cast ended:", event)
         end
 
     elseif event == "PLAYER_LOGIN" or (event == "ADDON_LOADED" and arg1 == "CursorRing") then
