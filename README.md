@@ -28,7 +28,7 @@ And it only works as well as it does because of the contributions of my brother.
   Supports segmented or legacy half-circle animation.
 
 * **Visibility control**
-  Configurable to appear always, only in combat, or only inside instances.
+  Configurable to appear always, only in combat and inside instances.
 
 * **In-game configuration**
   Accessible via *Interface → AddOns → CursorRing* or the modern *Settings* menu.
@@ -40,7 +40,7 @@ And it only works as well as it does because of the contributions of my brother.
   * “Reset to class color” button
 
 * **Persistent settings**
-  Stored in `CursorRingDB` between sessions.
+  Stored in character-specific `CursorRingDB` between sessions.
 
 ---
 
