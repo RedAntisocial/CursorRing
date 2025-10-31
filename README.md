@@ -104,8 +104,8 @@ Contributions and feature requests are welcome.
 
 ## Credits
 
-* **Author:** Periago - Dalaran
-* **Art & Design:** Periago - Dalaran, and the WoW artists we've used the icons of :D
+* **Authors:** Alex Pierce and his brother.
+* **Art & Design:** Alex Pierce, who draws circles in GIMP 3.x , and the WoW artists we've used the icons of :D
 * **References:** Blizzard UI API and open-source addon templates.
 
 ---
