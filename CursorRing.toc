@@ -2,11 +2,10 @@
 ## Title: Cursor Ring
 ## Notes: Puts a persistent class-coloured ring around your mouse cursor. Maybe someday with a working cast animation.
 ## Author: Periago - Dalaran
-## Version: 1.0.0
+## Version: 1.0.1
 ## IconTexture: Interface\Icons\inv_ring_oribos_01_copper
 ## X-Curse-Project-ID: 
 ## X-WoWI-ID: 
 ## X-Wago-ID: 
 ## SavedVariablesPerCharacter: CursorRingDB
 CursorRing.lua
-
