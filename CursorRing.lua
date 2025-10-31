@@ -10,6 +10,7 @@ local _, class = UnitClass("player")
 local defaultClassColor = RAID_CLASS_COLORS[class]
 local ringColor = CursorRingDB.ringColor or {r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b}
 local castColor = CursorRingDB.castColor or {r = 1, g = 1, b = 1} -- Default to white
+local showOutOfCombat = CursorRingDB.showOutOfCombat or CursorRingDB.showOutOfCombat == nil and true -- Default to true
 
 local addon = CreateFrame("Frame")
 addon:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -20,13 +21,19 @@ addon:RegisterEvent("UNIT_SPELLCAST_FAILED")
 addon:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
+addon:RegisterEvent("PLAYER_REGEN_DISABLED") -- Entering combat
+addon:RegisterEvent("PLAYER_REGEN_ENABLED")  -- Leaving combat
+addon:RegisterEvent("ZONE_CHANGED_NEW_AREA") -- Zone changes (for instance detection)
 addon:RegisterEvent("PLAYER_LOGIN")
 addon:RegisterEvent("ADDON_LOADED")
 
-local ring, leftHalf, rightHalf
+local ring, leftHalf, rightHalf, castSegments
 local casting = false
 local castStart, castEnd = 0, 0
 local panelLoaded = false
+
+-- Number of segments for the cast bar (100 segments for 1/100th textures)
+local NUM_CAST_SEGMENTS = 100
 
 -- Function to update ring size
 local function UpdateRingSize(size)
@@ -52,6 +59,42 @@ local function UpdateCastColor(r, g, b)
     CursorRingDB.castColor = castColor
 end
 
+-- Function to check if ring should be visible
+local function ShouldShowRing()
+    -- Always show in combat
+    if InCombatLockdown() then
+        return true
+    end
+    
+    -- Always show in instances (dungeons, raids, battlegrounds, arenas)
+    local inInstance, instanceType = IsInInstance()
+    if inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena") then
+        return true
+    end
+    
+    -- Otherwise, use the user setting
+    return showOutOfCombat
+end
+
+-- Function to update ring visibility based on current conditions
+local function UpdateRingVisibility()
+    if not ring or not ring:GetParent() then return end
+    
+    local shouldShow = ShouldShowRing()
+    if shouldShow then
+        ring:GetParent():Show()
+    else
+        ring:GetParent():Hide()
+    end
+end
+
+-- Function to update out of combat visibility setting
+local function UpdateShowOutOfCombat(show)
+    showOutOfCombat = show
+    CursorRingDB.showOutOfCombat = show
+    UpdateRingVisibility()
+end
+
 -- Function to create the cursor ring frame
 local function CreateCursorRing()
     if ring then return end  -- prevent multiple frames
@@ -66,13 +109,29 @@ local function CreateCursorRing()
     ringTex:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
     ring = ringTex
 
-    -- Left semicircle for the very bad castbar "animation"
+    -- Create cast progress segments (assuming you'll provide a cast_segment.tga texture)
+    castSegments = {}
+    for i = 1, NUM_CAST_SEGMENTS do
+        local segment = f:CreateTexture(nil, "OVERLAY")
+        segment:SetTexture("Interface\\AddOns\\CursorRing\\cast_segment.tga", "CLAMP")
+        segment:SetAllPoints()
+        
+        -- Calculate rotation for this segment (18 degrees per segment for 20 segments)
+        local angle = (i - 1) * (360 / NUM_CAST_SEGMENTS)
+        segment:SetRotation(math.rad(angle))
+        
+        -- Start hidden
+        segment:SetVertexColor(1, 1, 1, 0)
+        
+        castSegments[i] = segment
+    end
+
+    -- Keep the old textures hidden for backwards compatibility (in case cast_segment.tga doesn't exist)
     leftHalf = f:CreateTexture(nil, "OVERLAY")
     leftHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_left.tga", "CLAMP")
     leftHalf:SetAllPoints()
     leftHalf:SetVertexColor(1,1,1,0)
 
-    -- Right semicircle for the very bad castbar "animation"
     rightHalf = f:CreateTexture(nil, "OVERLAY")
     rightHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_right.tga", "CLAMP")
     rightHalf:SetAllPoints()
@@ -101,30 +160,73 @@ local function CreateCursorRing()
             else
                 -- No cast detected, stop casting state
                 casting = false
+                -- Hide all segments
+                if castSegments then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                    end
+                end
+                -- Hide old halves too
                 leftHalf:SetVertexColor(1,1,1,0)
                 rightHalf:SetVertexColor(1,1,1,0)
                 return
             end
             
             progress = math.min(math.max(progress, 0), 1)
-            local angle = progress * 360
-
-            leftHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-            rightHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-
-            if angle <= 180 then
-                rightHalf:SetRotation(math.rad(angle))
-                leftHalf:SetRotation(0)
+            
+            -- Use segmented progress if cast_segment.tga exists, otherwise fall back to old method
+            if castSegments and castSegments[1]:GetTexture() then
+                -- Calculate how many segments to show
+                local segmentsToShow = math.floor(progress * NUM_CAST_SEGMENTS)
+                
+                for i = 1, NUM_CAST_SEGMENTS do
+                    if i <= segmentsToShow then
+                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+                    else
+                        castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                    end
+                end
+                
+                -- Hide old halves when using segments
                 leftHalf:SetVertexColor(1,1,1,0)
+                rightHalf:SetVertexColor(1,1,1,0)
             else
-                rightHalf:SetRotation(math.rad(180))
-                leftHalf:SetRotation(math.rad(angle - 180))
+                -- Fallback to old spinning halves method
+                local angle = progress * 360
+
+                leftHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+                rightHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+
+                if angle <= 180 then
+                    rightHalf:SetRotation(math.rad(angle))
+                    leftHalf:SetRotation(0)
+                    leftHalf:SetVertexColor(1,1,1,0)
+                else
+                    rightHalf:SetRotation(math.rad(180))
+                    leftHalf:SetRotation(math.rad(angle - 180))
+                end
+                
+                -- Hide segments when using old method
+                if castSegments then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                    end
+                end
             end
         else
+            -- Hide everything when not casting
+            if castSegments then
+                for i = 1, NUM_CAST_SEGMENTS do
+                    castSegments[i]:SetVertexColor(1, 1, 1, 0)
+                end
+            end
             leftHalf:SetVertexColor(1,1,1,0)
             rightHalf:SetVertexColor(1,1,1,0)
         end
     end)
+    
+    -- Set initial visibility based on current conditions
+    UpdateRingVisibility()
 end
 
 -- Function to create the options panel (this was a pain in the ass. Make sure you rip code off of newer addons next time dumbass)
@@ -255,13 +357,26 @@ local function CreateOptionsPanel()
     -- Reset to Class Color Button
     local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetButton:SetPoint("TOPLEFT", castColorLabel, "BOTTOMLEFT", 0, -40)
-    resetButton:SetSize(170, 25)
+    resetButton:SetSize(150, 25)
     resetButton:SetText("Reset Ring to Class Color")
     resetButton:SetScript("OnClick", function()
         local _, class = UnitClass("player")
         local classColor = RAID_CLASS_COLORS[class]
         ringColorTexture:SetColorTexture(classColor.r, classColor.g, classColor.b, 1)
         UpdateRingColor(classColor.r, classColor.g, classColor.b)
+    end)
+
+    -- Show Out of Combat Checkbox
+    local outOfCombatCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    outOfCombatCheckbox:SetPoint("TOPLEFT", resetButton, "BOTTOMLEFT", 0, -20)
+    
+    local outOfCombatLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    outOfCombatLabel:SetPoint("LEFT", outOfCombatCheckbox, "RIGHT", 5, 0)
+    outOfCombatLabel:SetText("Show ring outside of combat/instances")
+    
+    outOfCombatCheckbox:SetChecked(showOutOfCombat)
+    outOfCombatCheckbox:SetScript("OnClick", function(self)
+        UpdateShowOutOfCombat(self:GetChecked())
     end)
 
     -- This is the part you mucked up by using an old API
@@ -320,6 +435,11 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
             -- Debug
             -- print("Cast ended:", event)
         end
+
+    elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or 
+           event == "ZONE_CHANGED_NEW_AREA" then
+        -- Combat or zone changed, update ring visibility
+        UpdateRingVisibility()
 
     elseif event == "PLAYER_LOGIN" or (event == "ADDON_LOADED" and arg1 == "CursorRing") then
         CreateOptionsPanel()
