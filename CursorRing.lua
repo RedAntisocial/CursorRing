@@ -1,9 +1,10 @@
 -- Default ring size... because if I let it be decided by the image size, it's HUUUUUGE
-local ringSize = 64
+local ringSize, ringColor, castColor, showOutOfCombat
 
 -- Load saved settings or create default table
 CursorRingDB = CursorRingDB or {}
 ringSize = CursorRingDB.ringSize or 64
+showOutOfCombat = CursorRingDB.showOutOfCombat or true
 
 -- Get class color as default for main ring
 local _, class = UnitClass("player")
@@ -441,7 +442,31 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
         -- Combat or zone changed, update ring visibility
         UpdateRingVisibility()
 
-    elseif event == "PLAYER_LOGIN" or (event == "ADDON_LOADED" and arg1 == "CursorRing") then
-        CreateOptionsPanel()
-    end
+    elseif event == "ADDON_LOADED" and arg1 == "CursorRing" then
+    CursorRingDB = CursorRingDB or {}
+
+    -- Defaults
+    local _, class = UnitClass("player")
+    local defaultClassColor = RAID_CLASS_COLORS[class]
+    
+    ringSize = CursorRingDB.ringSize or 64
+    showOutOfCombat = CursorRingDB.showOutOfCombat
+    if showOutOfCombat == nil then showOutOfCombat = true end
+
+    ringColor = CursorRingDB.ringColor or {
+        r = defaultClassColor.r,
+        g = defaultClassColor.g,
+        b = defaultClassColor.b
+    }
+    castColor = CursorRingDB.castColor or {r = 1, g = 1, b = 1}
+
+    -- Save defaults back if missing
+    CursorRingDB.ringSize = ringSize
+    CursorRingDB.ringColor = ringColor
+    CursorRingDB.castColor = castColor
+    CursorRingDB.showOutOfCombat = showOutOfCombat
+
+    CreateOptionsPanel()
+	end
+
 end)
