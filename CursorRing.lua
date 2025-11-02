@@ -1,6 +1,6 @@
 -- Default ring size... because if I let it be decided by the image size, it's HUUUUUGE
 local ringSize, ringColor, castColor, showOutOfCombat
-local sparkleCheckbox, sparkleTrail, mouseTrail, trailFadeTime, trailColor
+local trailCheckbox, sparkleCheckbox, mouseTrail, sparkleTrail, sparkleOffsetRange, trailFadeTime, trailColor
 
 -- Load saved settings or create default table
 CursorRingDB = CursorRingDB or {}
@@ -213,7 +213,7 @@ local function CreateCursorRing()
                         end
 
                         -- Random offset around the mouseTrail
-                        local sparkleOffsetRange = 12 -- pixels
+                        local sparkleOffsetRange = sparkleOffsetRange or 12 -- pixels
                         local dx = (math.random() - 0.5) * 2 * sparkleOffsetRange
                         local dy = (math.random() - 0.5) * 2 * sparkleOffsetRange
 
