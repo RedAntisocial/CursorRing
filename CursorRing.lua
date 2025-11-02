@@ -32,9 +32,10 @@ local ring, leftHalf, rightHalf, castSegments
 local casting = false
 local castStart, castEnd = 0, 0
 local panelLoaded = false
+local castStyle = "ring"
 
--- Number of segments for the cast bar (100 segments for 1/100th textures)
-local NUM_CAST_SEGMENTS = 100
+-- Number of segments for the cast bar (240 segments for 1/240th textures)
+local NUM_CAST_SEGMENTS = 240
 
 -- Function to update ring size
 local function UpdateRingSize(size)
@@ -51,6 +52,47 @@ local function UpdateRingColor(r, g, b)
     CursorRingDB.ringColor = ringColor
     if ring then
         ring:SetVertexColor(r, g, b, 1)
+    end
+end
+
+-- Function to update cast style
+local function UpdateCastStyle(style)
+    castStyle = style
+    CursorRingDB.castStyle = style
+    print("Cast style updated to:", style)
+    
+    -- Recreate cast segments with new texture if they exist
+    if castSegments and ring and ring:GetParent() then
+        local f = ring:GetParent()
+        
+        -- Remove old segments
+        for i = 1, NUM_CAST_SEGMENTS do
+            if castSegments[i] then
+                castSegments[i]:Hide()
+                castSegments[i] = nil
+            end
+        end
+        
+        -- Create new segments with updated texture
+        castSegments = {}
+        for i = 1, NUM_CAST_SEGMENTS do
+            local segment = f:CreateTexture(nil, "OVERLAY")
+            local segmentTexturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
+            if castStyle == "wedge" then
+                segmentTexturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
+            end
+            segment:SetTexture(segmentTexturePath, "CLAMP")
+            segment:SetAllPoints()
+            
+            -- Calculate rotation for this segment
+            local angle = (i - 1) * (360 / NUM_CAST_SEGMENTS)
+            segment:SetRotation(math.rad(angle))
+            
+            -- Start hidden
+            segment:SetVertexColor(1, 1, 1, 0)
+            
+            castSegments[i] = segment
+        end
     end
 end
 
@@ -110,11 +152,16 @@ local function CreateCursorRing()
     ringTex:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
     ring = ringTex
 
-    -- Create cast progress segments (assuming you'll provide a cast_segment.tga texture)
+    -- Create cast progress segments
     castSegments = {}
     for i = 1, NUM_CAST_SEGMENTS do
         local segment = f:CreateTexture(nil, "OVERLAY")
-        segment:SetTexture("Interface\\AddOns\\CursorRing\\cast_segment.tga", "CLAMP")
+        local segmentTexturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga" -- Ensure a default is set
+        print("Creating cast segment", i, "with style", castStyle)
+        if castStyle == "wedge" then
+            segmentTexturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
+        end
+        segment:SetTexture(segmentTexturePath, "CLAMP")
         segment:SetAllPoints()
         
         -- Calculate rotation for this segment (18 degrees per segment for 20 segments)
@@ -174,8 +221,8 @@ local function CreateCursorRing()
             end
             
             progress = math.min(math.max(progress, 0), 1)
-            
-            -- Use segmented progress if cast_segment.tga exists, otherwise fall back to old method
+
+            -- Use segmented progress if relevant textures exist, otherwise fall back to old method
             if castSegments and castSegments[1]:GetTexture() then
                 -- Calculate how many segments to show
                 local segmentsToShow = math.floor(progress * NUM_CAST_SEGMENTS)
@@ -245,7 +292,7 @@ local function CreateOptionsPanel()
     -- Ring Size Slider
     local slider = CreateFrame("Slider", "CursorRingSizeSlider", panel, "OptionsSliderTemplate")
     slider:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -40)
-    slider:SetMinMaxValues(64, 256)
+    slider:SetMinMaxValues(32, 256)
     slider:SetValueStep(1)
     slider:SetObeyStepOnDrag(true)
     slider:SetValue(ringSize)
@@ -262,7 +309,7 @@ local function CreateOptionsPanel()
 
     -- Ring Color Picker Button
     local ringColorButton = CreateFrame("Button", nil, panel)
-    ringColorButton:SetPoint("LEFT", ringColorLabel, "RIGHT", 10, 0)
+    ringColorButton:SetPoint("LEFT", ringColorLabel, "RIGHT", 40, 0)
     ringColorButton:SetSize(40, 20)
     
     local ringColorTexture = ringColorButton:CreateTexture(nil, "BACKGROUND")
@@ -355,10 +402,41 @@ local function CreateOptionsPanel()
         end
     end)
 
+    -- Ring or Wedge Cast Style Dropdown
+    local styleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    styleLabel:SetPoint("LEFT", castColorButton, "LEFT", 60, 0)
+    styleLabel:SetText("Cast Ring Style:")
+
+    local styleDropdown = CreateFrame("Frame", nil, panel, "UIDropDownMenuTemplate")
+    styleDropdown:SetPoint("LEFT", styleLabel, "RIGHT", 5, 0)
+    styleDropdown:SetSize(150, 25)
+
+    local function OnStyleSelected(self, arg1, arg2, checked)
+        UpdateCastStyle(arg1)
+        UIDropDownMenu_SetText(styleDropdown, arg1 == "ring" and "Ring" or "Wedge")
+    end
+
+    UIDropDownMenu_SetInitializeFunction(styleDropdown, function(self)
+        local info = UIDropDownMenu_CreateInfo()
+        info.func = OnStyleSelected
+
+        info.text = "Ring"
+        info.arg1 = "ring"
+        info.checked = (castStyle == "ring")
+        UIDropDownMenu_AddButton(info)
+
+        info.text = "Wedge"
+        info.arg1 = "wedge"
+        info.checked = (castStyle == "wedge")
+        UIDropDownMenu_AddButton(info)
+    end)
+    
+    -- Set the initial display text based on current castStyle
+    UIDropDownMenu_SetText(styleDropdown, castStyle == "ring" and "Ring" or "Wedge")
     -- Reset to Class Color Button
     local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetButton:SetPoint("TOPLEFT", castColorLabel, "BOTTOMLEFT", 0, -40)
-    resetButton:SetSize(150, 25)
+    resetButton:SetSize(180, 25)
     resetButton:SetText("Reset Ring to Class Color")
     resetButton:SetScript("OnClick", function()
         local _, class = UnitClass("player")
@@ -459,12 +537,14 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
         b = defaultClassColor.b
     }
     castColor = CursorRingDB.castColor or {r = 1, g = 1, b = 1}
+    castStyle = CursorRingDB.castStyle or "ring"
 
     -- Save defaults back if missing
     CursorRingDB.ringSize = ringSize
     CursorRingDB.ringColor = ringColor
     CursorRingDB.castColor = castColor
     CursorRingDB.showOutOfCombat = showOutOfCombat
+    CursorRingDB.castStyle = castStyle
 
     CreateOptionsPanel()
 	end
