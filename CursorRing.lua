@@ -10,8 +10,8 @@ showOutOfCombat = CursorRingDB.showOutOfCombat or true
 -- Get class color as default for main ring
 local _, class = UnitClass("player")
 local defaultClassColor = RAID_CLASS_COLORS[class]
-local ringColor = CursorRingDB.ringColor or {r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b}
-local castColor = CursorRingDB.castColor or {r = 1, g = 1, b = 1} -- Default to white
+local ringColor = CursorRingDB.ringColor or { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
+local castColor = CursorRingDB.castColor or { r = 1, g = 1, b = 1 }                                  -- Default to white
 local showOutOfCombat = CursorRingDB.showOutOfCombat or CursorRingDB.showOutOfCombat == nil and true -- Default to true
 
 local addon = CreateFrame("Frame")
@@ -36,8 +36,8 @@ local panelLoaded = false
 local castStyle = "ring"
 
 -- Mouse trail variables
-local trailGroup = {} -- TODO: on/off to menu
-local sparkleGroup = {} -- TODO: on/off to menu dependent on trail
+local trailGroup = {}       -- TODO: on/off to menu
+local sparkleGroup = {}     -- TODO: on/off to menu dependent on trail
 local MAX_TRAIL_POINTS = 20 -- TODO: add this to menu as slider
 local NUM_CAST_SEGMENTS = 100
 local hasCastSegments = false
@@ -69,11 +69,11 @@ local function UpdateCastStyle(style)
     castStyle = style
     CursorRingDB.castStyle = style
     print("Cast style updated to:", style)
-    
+
     -- Recreate cast segments with new texture if they exist
     if castSegments and ring and ring:GetParent() then
         local f = ring:GetParent()
-        
+
         -- Remove old segments
         for i = 1, NUM_CAST_SEGMENTS do
             if castSegments[i] then
@@ -81,7 +81,7 @@ local function UpdateCastStyle(style)
                 castSegments[i] = nil
             end
         end
-        
+
         -- Create new segments with updated texture
         castSegments = {}
         for i = 1, NUM_CAST_SEGMENTS do
@@ -92,14 +92,14 @@ local function UpdateCastStyle(style)
             end
             segment:SetTexture(segmentTexturePath, "CLAMP")
             segment:SetAllPoints()
-            
+
             -- Calculate rotation for this segment
             local angle = (i - 1) * (360 / NUM_CAST_SEGMENTS)
             segment:SetRotation(math.rad(angle))
-            
+
             -- Start hidden
             segment:SetVertexColor(1, 1, 1, 0)
-            
+
             castSegments[i] = segment
         end
     end
@@ -117,13 +117,13 @@ local function ShouldShowRing()
     if InCombatLockdown() then
         return true
     end
-    
+
     -- Always show in instances (dungeons, raids, battlegrounds, arenas)
     local inInstance, instanceType = IsInInstance()
-    if inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena") then
+    if inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena" or instanceType == "scenario") then
         return true
     end
-    
+
     -- Otherwise, use the user setting
     return showOutOfCombat
 end
@@ -131,13 +131,61 @@ end
 -- Function to update ring visibility based on current conditions
 local function UpdateRingVisibility()
     if not ring or not ring:GetParent() then return end
-    
+
     local shouldShow = ShouldShowRing()
     if shouldShow then
         ring:GetParent():Show()
     else
         ring:GetParent():Hide()
     end
+end
+-- Function to check if trail should be visible
+local function ShouldShowTrail()
+    -- Always show in combat
+    if InCombatLockdown() then
+        return true
+    end
+
+    -- Always show in instances (dungeons, raids, battlegrounds, arenas)
+    local inInstance, instanceType = IsInInstance()
+    if inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena" or instanceType == "scenario") then
+        return true
+    end
+
+    -- Otherwise, use the user setting
+    return showOutOfCombat
+end --
+
+-- Function to update mouse trail visibility
+local function UpdateMouseTrailVisibility()
+    local shouldShow = ShouldShowTrail()
+    local mouseTrail = CursorRingDB.mouseTrail or false
+    if shouldShow and mouseTrail == true then
+        for i, point in ipairs(trailGroup) do
+            if point.tex then
+                point.tex:SetAlpha(1)
+            end
+            if point.sparkle then
+                point.sparkle:SetAlpha(1)
+            end
+        end
+    else
+        for i, point in ipairs(trailGroup) do
+            if point.tex then
+                point.tex:SetAlpha(0)
+            end
+            if point.sparkle then
+                point.sparkle:SetAlpha(0)
+            end
+        end
+    end
+end
+
+-- Function to update mouse trail setting
+local function UpdateMouseTrail(enabled)
+    mouseTrail = enabled
+    CursorRingDB.mouseTrail = enabled
+    UpdateMouseTrailVisibility()
 end
 
 -- Function to update out of combat visibility setting
@@ -149,7 +197,7 @@ end
 
 -- Function to create the cursor ring frame
 local function CreateCursorRing()
-    if ring then return end  -- prevent multiple frames
+    if ring then return end -- prevent multiple frames
     local f = CreateFrame("Frame", nil, UIParent)
     f:SetSize(ringSize, ringSize)
     f:SetFrameStrata("HIGH")
@@ -166,20 +214,20 @@ local function CreateCursorRing()
     for i = 1, NUM_CAST_SEGMENTS do
         local segment = f:CreateTexture(nil, "OVERLAY")
         local segmentTexturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga" -- Ensure a default is set
-        print("Creating cast segment", i, "with style", castStyle)
+        -- print("Creating cast segment", i, "with style", castStyle)
         if castStyle == "wedge" then
             segmentTexturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
         end
         segment:SetTexture(segmentTexturePath, "CLAMP")
         segment:SetAllPoints()
-        
+
         -- Calculate rotation for this segment (18 degrees per segment for 20 segments)
         local angle = (i - 1) * (360 / NUM_CAST_SEGMENTS)
         segment:SetRotation(math.rad(angle))
-        
+
         -- Start hidden
         segment:SetVertexColor(1, 1, 1, 0)
-        
+
         castSegments[i] = segment
     end
 
@@ -187,12 +235,12 @@ local function CreateCursorRing()
     leftHalf = f:CreateTexture(nil, "OVERLAY")
     leftHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_left.tga", "CLAMP")
     leftHalf:SetAllPoints()
-    leftHalf:SetVertexColor(1,1,1,0)
+    leftHalf:SetVertexColor(1, 1, 1, 0)
 
     rightHalf = f:CreateTexture(nil, "OVERLAY")
     rightHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_right.tga", "CLAMP")
     rightHalf:SetAllPoints()
-    rightHalf:SetVertexColor(1,1,1,0)
+    rightHalf:SetVertexColor(1, 1, 1, 0)
 
     -- Create Mouse Trail  textures
     local function CreateTrailTexture(parent)
@@ -218,13 +266,13 @@ local function CreateCursorRing()
         local x, y = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
-
+        -- print("MouseTrail: ", mouseTrail)
         -- Mouse trail
-        if mouseTrail then
+        if mouseTrail == true then
             local worldX, worldY = x / scale, y / scale
             local now = GetTime()
 
-            table.insert(trailGroup, {x = worldX, y = worldY, created = now})
+            table.insert(trailGroup, { x = worldX, y = worldY, created = now })
 
             -- Trim oldest points if over limit
             while #trailGroup > MAX_TRAIL_POINTS do
@@ -237,6 +285,7 @@ local function CreateCursorRing()
             for i = #trailGroup, 1, -1 do
                 local point = trailGroup[i]
                 local age = now - point.created
+                local trailFadeTime = CursorRingDB.fadeTime or 1.0
                 local fade = 1 - (age / trailFadeTime)
                 if fade <= 0 then
                     if point.tex then point.tex:Hide() end
@@ -246,7 +295,7 @@ local function CreateCursorRing()
                     if not point.tex then point.tex = CreateTrailTexture(self) end
                     point.tex:ClearAllPoints()
                     point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
-                    local rc = trailColor or {r=1,g=1,b=1}
+                    local rc = trailColor or { r = 1, g = 1, b = 1 }
                     point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade * 0.8, 0, 1))
                     point.tex:SetAlpha(fade)
                     local size = (ringSize or 64) * 0.4 * fade
@@ -266,7 +315,9 @@ local function CreateCursorRing()
 
                         point.sparkle:ClearAllPoints()
                         point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
-                        
+                        local sc = CursorRingDB.sparkleColor or { r = 1, g = 1, b = 1 }
+                        point.sparkle:SetVertexColor(sc.r, sc.g, sc.b, 1)
+
                         local flicker = 1.7 + math.random() * 1.3
                         point.sparkle:SetAlpha(Clamp(fade * flicker, 0, 1))
 
@@ -279,11 +330,11 @@ local function CreateCursorRing()
         if casting then
             local now = GetTime()
             local progress = 0
-            
+
             -- Check if we're currently casting or channeling
             local castName, _, _, castStartTime, castEndTime = UnitCastingInfo("player")
             local channelName, _, _, channelStartTime, channelEndTime = UnitChannelInfo("player")
-            
+
             if castName then
                 -- Regular cast
                 progress = (now - (castStartTime / 1000)) / ((castEndTime - castStartTime) / 1000)
@@ -300,18 +351,18 @@ local function CreateCursorRing()
                     end
                 end
                 -- Hide old halves too
-                leftHalf:SetVertexColor(1,1,1,0)
-                rightHalf:SetVertexColor(1,1,1,0)
+                leftHalf:SetVertexColor(1, 1, 1, 0)
+                rightHalf:SetVertexColor(1, 1, 1, 0)
                 return
             end
-            
+
             progress = math.min(math.max(progress, 0), 1)
 
             -- Use segmented progress if relevant textures exist, otherwise fall back to old method
             if castSegments and castSegments[1]:GetTexture() then
                 -- Calculate how many segments to show
                 local segmentsToShow = math.floor(progress * NUM_CAST_SEGMENTS)
-                
+
                 for i = 1, NUM_CAST_SEGMENTS do
                     if i <= segmentsToShow then
                         castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
@@ -319,10 +370,10 @@ local function CreateCursorRing()
                         castSegments[i]:SetVertexColor(1, 1, 1, 0)
                     end
                 end
-                
+
                 -- Hide old halves when using segments
-                leftHalf:SetVertexColor(1,1,1,0)
-                rightHalf:SetVertexColor(1,1,1,0)
+                leftHalf:SetVertexColor(1, 1, 1, 0)
+                rightHalf:SetVertexColor(1, 1, 1, 0)
             else
                 -- Fallback to old spinning halves method
                 local angle = progress * 360
@@ -333,12 +384,12 @@ local function CreateCursorRing()
                 if angle <= 180 then
                     rightHalf:SetRotation(math.rad(angle))
                     leftHalf:SetRotation(0)
-                    leftHalf:SetVertexColor(1,1,1,0)
+                    leftHalf:SetVertexColor(1, 1, 1, 0)
                 else
                     rightHalf:SetRotation(math.rad(180))
                     leftHalf:SetRotation(math.rad(angle - 180))
                 end
-                
+
                 -- Hide segments when using old method
                 if castSegments then
                     for i = 1, NUM_CAST_SEGMENTS do
@@ -353,11 +404,11 @@ local function CreateCursorRing()
                     castSegments[i]:SetVertexColor(1, 1, 1, 0)
                 end
             end
-            leftHalf:SetVertexColor(1,1,1,0)
-            rightHalf:SetVertexColor(1,1,1,0)
+            leftHalf:SetVertexColor(1, 1, 1, 0)
+            rightHalf:SetVertexColor(1, 1, 1, 0)
         end
     end)
-    
+
     -- Set initial visibility based on current conditions
     UpdateRingVisibility()
 end
@@ -374,14 +425,27 @@ local function CreateOptionsPanel()
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("CursorRing Settings")
 
+    -- Show Out of Combat Checkbox
+    local outOfCombatCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    outOfCombatCheckbox:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -20)
+
+    local outOfCombatLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    outOfCombatLabel:SetPoint("LEFT", outOfCombatCheckbox, "RIGHT", 5, 0)
+    outOfCombatLabel:SetText("Show ring outside of combat/instances")
+
+    outOfCombatCheckbox:SetChecked(showOutOfCombat)
+    outOfCombatCheckbox:SetScript("OnClick", function(self)
+        UpdateShowOutOfCombat(self:GetChecked())
+    end)
+
     -- Ring Size Slider
     local slider = CreateFrame("Slider", "CursorRingSizeSlider", panel, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -40)
+    slider:SetPoint("TOPLEFT", outOfCombatCheckbox, "BOTTOMLEFT", 0, -30)
     slider:SetMinMaxValues(32, 256)
     slider:SetValueStep(1)
     slider:SetObeyStepOnDrag(true)
     slider:SetValue(ringSize)
-    _G[slider:GetName().."Text"]:SetText("Ring Size")
+    _G[slider:GetName() .. "Text"]:SetText("Ring Size")
 
     slider:SetScript("OnValueChanged", function(self, value)
         UpdateRingSize(value)
@@ -396,11 +460,11 @@ local function CreateOptionsPanel()
     local ringColorButton = CreateFrame("Button", nil, panel)
     ringColorButton:SetPoint("LEFT", ringColorLabel, "RIGHT", 40, 0)
     ringColorButton:SetSize(40, 20)
-    
+
     local ringColorTexture = ringColorButton:CreateTexture(nil, "BACKGROUND")
     ringColorTexture:SetAllPoints()
     ringColorTexture:SetColorTexture(ringColor.r, ringColor.g, ringColor.b, 1)
-    
+
     ringColorButton:SetScript("OnClick", function()
         local info = {}
         info.r, info.g, info.b = ringColor.r, ringColor.g, ringColor.b
@@ -419,7 +483,7 @@ local function CreateOptionsPanel()
             ringColorTexture:SetColorTexture(previous.r, previous.g, previous.b, 1)
             UpdateRingColor(previous.r, previous.g, previous.b)
         end
-        
+
         -- Use available color picker API
         local colorPickerFrame = _G["ColorPickerFrame"]
         if colorPickerFrame then
@@ -446,11 +510,11 @@ local function CreateOptionsPanel()
     local castColorButton = CreateFrame("Button", nil, panel)
     castColorButton:SetPoint("LEFT", castColorLabel, "RIGHT", 10, 0)
     castColorButton:SetSize(40, 20)
-    
+
     local castColorTexture = castColorButton:CreateTexture(nil, "BACKGROUND")
     castColorTexture:SetAllPoints()
     castColorTexture:SetColorTexture(castColor.r, castColor.g, castColor.b, 1)
-    
+
     castColorButton:SetScript("OnClick", function()
         local info = {}
         info.r, info.g, info.b = castColor.r, castColor.g, castColor.b
@@ -469,7 +533,7 @@ local function CreateOptionsPanel()
             castColorTexture:SetColorTexture(previous.r, previous.g, previous.b, 1)
             UpdateCastColor(previous.r, previous.g, previous.b)
         end
-        
+
         -- Use available color picker API
         local colorPickerFrame = _G["ColorPickerFrame"]
         if colorPickerFrame then
@@ -489,7 +553,7 @@ local function CreateOptionsPanel()
 
     -- Ring or Wedge Cast Style Dropdown
     local styleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    styleLabel:SetPoint("LEFT", castColorButton, "LEFT", 60, 0)
+    styleLabel:SetPoint("LEFT", castColorButton, "RIGHT", 100, 0)
     styleLabel:SetText("Cast Ring Style:")
 
     local styleDropdown = CreateFrame("Frame", nil, panel, "UIDropDownMenuTemplate")
@@ -515,7 +579,7 @@ local function CreateOptionsPanel()
         info.checked = (castStyle == "wedge")
         UIDropDownMenu_AddButton(info)
     end)
-    
+
     -- Set the initial display text based on current castStyle
     UIDropDownMenu_SetText(styleDropdown, castStyle == "ring" and "Ring" or "Wedge")
     -- Reset to Class Color Button
@@ -530,18 +594,148 @@ local function CreateOptionsPanel()
         UpdateRingColor(classColor.r, classColor.g, classColor.b)
     end)
 
-    -- Show Out of Combat Checkbox
-    local outOfCombatCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    outOfCombatCheckbox:SetPoint("TOPLEFT", resetButton, "BOTTOMLEFT", 0, -20)
-    
-    local outOfCombatLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    outOfCombatLabel:SetPoint("LEFT", outOfCombatCheckbox, "RIGHT", 5, 0)
-    outOfCombatLabel:SetText("Show ring outside of combat/instances")
-    
-    outOfCombatCheckbox:SetChecked(showOutOfCombat)
-    outOfCombatCheckbox:SetScript("OnClick", function(self)
-        UpdateShowOutOfCombat(self:GetChecked())
+    -- Enable/Disable Mouse Trail Checkbox
+    mouseTrail = CursorRingDB.mouseTrail or false
+    local mouseTrailCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    mouseTrailCheckbox:SetPoint("TOPLEFT", resetButton, "BOTTOMLEFT", 0, -20)
+    mouseTrailCheckbox:SetChecked(mouseTrail)
+    mouseTrailCheckbox:SetScript("OnClick", function(self)
+        mouseTrail = self:GetChecked()
+        print("Mouse Trail set to:", mouseTrail)
+        UpdateMouseTrail(mouseTrail)
     end)
+    -- Mouse Trail Checkbox
+    local mouseTrailLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    mouseTrailLabel:SetPoint("LEFT", mouseTrailCheckbox, "RIGHT", 5, 0)
+    mouseTrailLabel:SetText("Enable Mouse Trail")
+
+    -- Mouse Trail Sparkles Checkbox
+    sparkleTrail = CursorRingDB.sparkleTrail or false
+    sparkleCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    sparkleCheckbox:SetPoint("LEFT", mouseTrailLabel, "RIGHT", 100, 0)
+    sparkleCheckbox:SetChecked(sparkleTrail)
+    sparkleCheckbox:SetScript("OnClick", function(self)
+        sparkleTrail = self:GetChecked()
+        CursorRingDB.sparkleTrail = sparkleTrail
+        print("Sparkle Trail set to:", sparkleTrail)
+    end)
+    local sparkleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    sparkleLabel:SetPoint("LEFT", sparkleCheckbox, "RIGHT", 5, 0)
+    sparkleLabel:SetText("Enable Sparkle Effect on Mouse Trail")
+
+
+    -- Mouse Trail Colour Label
+    local trailColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    trailColorLabel:SetPoint("TOPLEFT", mouseTrailCheckbox, "BOTTOMLEFT", 0, -40)
+    trailColorLabel:SetText("Mouse Trail Color:")
+    -- Mouse Trail Color Picker Button
+    local trailColorButton = CreateFrame("Button", nil, panel)
+    trailColorButton:SetPoint("LEFT", trailColorLabel, "RIGHT", 10, 0)
+    trailColorButton:SetSize(40, 20)
+    local trailColorTexture = trailColorButton:CreateTexture(nil, "BACKGROUND")
+    trailColorTexture:SetAllPoints()
+    local trailColor = CursorRingDB.trailColor or { r = 1, g = 1, b = 1 }
+    trailColorTexture:SetColorTexture(trailColor.r, trailColor.g, trailColor.b, 1)
+    trailColorButton:SetScript("OnClick", function()
+        local info = {}
+        info.r, info.g, info.b = trailColor.r, trailColor.g, trailColor.b
+        info.hasOpacity = false
+        info.swatchFunc = function()
+            local r, g, b
+            if ColorPickerFrame and ColorPickerFrame.GetColorRGB then
+                r, g, b = ColorPickerFrame:GetColorRGB()
+            else
+                r, g, b = trailColor.r, trailColor.g, trailColor.b
+            end
+            trailColorTexture:SetColorTexture(r, g, b, 1)
+            trailColor.r, trailColor.g, trailColor.b = r, g, b
+            CursorRingDB.trailColor = trailColor
+        end
+        info.cancelFunc = function(previous)
+            trailColorTexture:SetColorTexture(previous.r, previous.g, previous.b, 1)
+            trailColor.r, trailColor.g, trailColor.b = previous.r, previous.g, previous.b
+            CursorRingDB.trailColor = trailColor
+        end
+
+        -- Use available color picker API
+        local colorPickerFrame = _G["ColorPickerFrame"]
+        if colorPickerFrame then
+            if colorPickerFrame.SetupColorPickerAndShow then
+                colorPickerFrame:SetupColorPickerAndShow(info)
+            else
+                -- Fallback for older versions
+                colorPickerFrame.func = info.swatchFunc
+                colorPickerFrame.cancelFunc = info.cancelFunc
+                if colorPickerFrame.SetColorRGB then
+                    colorPickerFrame:SetColorRGB(info.r, info.g, info.b)
+                end
+                colorPickerFrame:Show()
+            end
+        end
+    end)
+
+
+    -- Sparkle Trail Colour Label
+    local sparkleColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    sparkleColorLabel:SetPoint("TOPLEFT", sparkleCheckbox, "BOTTOMLEFT", 0, -40)
+    sparkleColorLabel:SetText("Sparkle Color:")
+    -- Sparkle Trail Color Picker ButtonBindingToIndex
+    local sparkleColorButton = CreateFrame("Button", nil, panel)
+    sparkleColorButton:SetPoint("LEFT", sparkleColorLabel, "RIGHT", 10, 0)
+    sparkleColorButton:SetSize(40, 20)
+    local sparkleColorTexture = sparkleColorButton:CreateTexture(nil, "BACKGROUND")
+    sparkleColorTexture:SetAllPoints()
+    local sparkleColor = CursorRingDB.sparkleColor or { r = 1, g = 1, b = 1 }
+    sparkleColorTexture:SetColorTexture(sparkleColor.r, sparkleColor.g, sparkleColor.b, 1)
+    sparkleColorButton:SetScript("OnClick", function()
+        local info = {}
+        info.r, info.g, info.b = sparkleColor.r, sparkleColor.g, sparkleColor.b
+        info.hasOpacity = false
+        info.swatchFunc = function()
+            local r, g, b
+            if ColorPickerFrame and ColorPickerFrame.GetColorRGB then
+                r, g, b = ColorPickerFrame:GetColorRGB()
+            else
+                r, g, b = sparkleColor.r, sparkleColor.g, sparkleColor.b
+            end
+            sparkleColorTexture:SetColorTexture(r, g, b, 1)
+            sparkleColor.r, sparkleColor.g, sparkleColor.b = r, g, b
+            CursorRingDB.sparkleColor = sparkleColor
+        end
+        info.cancelFunc = function(previous)
+            sparkleColorTexture:SetColorTexture(previous.r, previous.g, previous.b, 1)
+            sparkleColor.r, sparkleColor.g, sparkleColor.b = previous.r, previous.g, previous.b
+            CursorRingDB.sparkleColor = sparkleColor
+        end
+
+        -- Use available color picker API
+        local colorPickerFrame = _G["ColorPickerFrame"]
+        if colorPickerFrame then
+            if colorPickerFrame.SetupColorPickerAndShow then
+                colorPickerFrame:SetupColorPickerAndShow(info)
+            else
+                -- Fallback for older versions
+                colorPickerFrame.func = info.swatchFunc
+                colorPickerFrame.cancelFunc = info.cancelFunc
+                if colorPickerFrame.SetColorRGB then
+                    colorPickerFrame:SetColorRGB(info.r, info.g, info.b)
+                end
+                colorPickerFrame:Show()
+            end
+        end
+    end)
+
+    -- MouseTrail Fade Time Slider
+    local fadeTimeSlider = CreateFrame("Slider", "CursorRingTrailFadeTimeSlider", panel, "OptionsSliderTemplate")
+    fadeTimeSlider:SetPoint("TOPLEFT", trailColorLabel, "BOTTOMLEFT", 0, -40)
+    fadeTimeSlider:SetMinMaxValues(0.1, 3.0)
+    fadeTimeSlider:SetValue(CursorRingDB.fadeTime or 1.0)
+    fadeTimeSlider:SetValueStep(0.1)
+    fadeTimeSlider:SetScript("OnValueChanged", function(self, value)
+        CursorRingDB.fadeTime = value
+    end)
+    _G[fadeTimeSlider:GetName() .. "Text"]:SetText("Mouse Trail Length")
+
 
     -- This is the part you mucked up by using an old API
     if Settings and Settings.RegisterAddOnCategory then
@@ -565,7 +759,6 @@ end
 addon:SetScript("OnEvent", function(self, event, arg1, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         CreateCursorRing()
-
     elseif event == "UNIT_SPELLCAST_START" then
         local unit = arg1
         if unit == "player" then
@@ -577,7 +770,6 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
                 -- print("Regular cast started:", name)
             end
         end
-
     elseif event == "UNIT_SPELLCAST_CHANNEL_START" then
         local unit = arg1
         if unit == "player" then
@@ -589,57 +781,53 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
                 -- print("Channel started:", name)
             end
         end
-
-    elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or 
-           event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_SUCCEEDED" or
-           event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+    elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or
+        event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_SUCCEEDED" or
+        event == "UNIT_SPELLCAST_CHANNEL_STOP" then
         local unit = arg1
         if unit == "player" then
             casting = false
             -- Debug
             -- print("Cast ended:", event)
         end
-
-    elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or 
-           event == "ZONE_CHANGED_NEW_AREA" then
+    elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or
+        event == "ZONE_CHANGED_NEW_AREA" then
         -- Combat or zone changed, update ring visibility
         UpdateRingVisibility()
-
     elseif event == "ADDON_LOADED" and arg1 == "CursorRing" then
-    CursorRingDB = CursorRingDB or {}
+        CursorRingDB = CursorRingDB or {}
 
-    -- Defaults
-    local _, class = UnitClass("player")
-    local defaultClassColor = RAID_CLASS_COLORS[class]
-    
-    ringSize = CursorRingDB.ringSize or 64
-    showOutOfCombat = CursorRingDB.showOutOfCombat
-    if showOutOfCombat == nil then showOutOfCombat = true end
+        -- Defaults
+        local _, class = UnitClass("player")
+        local defaultClassColor = RAID_CLASS_COLORS[class]
 
-    ringColor = CursorRingDB.ringColor or {
-        r = defaultClassColor.r,
-        g = defaultClassColor.g,
-        b = defaultClassColor.b
-    }
-    castColor = CursorRingDB.castColor or {r = 1, g = 1, b = 1}
-    castStyle = CursorRingDB.castStyle or "ring"
+        ringSize = CursorRingDB.ringSize or 64
+        showOutOfCombat = CursorRingDB.showOutOfCombat
+        if showOutOfCombat == nil then showOutOfCombat = true end
+
+        ringColor = CursorRingDB.ringColor or {
+            r = defaultClassColor.r,
+            g = defaultClassColor.g,
+            b = defaultClassColor.b
+        }
+        castColor = CursorRingDB.castColor or { r = 1, g = 1, b = 1 }
+        castStyle = CursorRingDB.castStyle or "ring"
         mouseTrail = CursorRingDB.mouseTrail or false
         sparkleTrail = CursorRingDB.sparkleTrail or false
         trailFadeTime = CursorRingDB.trailFadeTime or 0.6
-        trailColor = CursorRingDB.trailColor or {r = 1, g = 1, b = 1}
+        trailColor = CursorRingDB.trailColor or { r = 1, g = 1, b = 1 }
 
-    -- Save defaults back if missing
-    CursorRingDB.ringSize = ringSize
-    CursorRingDB.ringColor = ringColor
-    CursorRingDB.castColor = castColor
-    CursorRingDB.showOutOfCombat = showOutOfCombat
-    CursorRingDB.castStyle = castStyle
-    CursorRingDB.mouseTrail = mouseTrail
-    CursorRingDB.sparkleTrail = sparkleTrail
-    CursorRingDB.trailFadeTime = trailFadeTime
-    CursorRingDB.trailColor = trailColor
+        -- Save defaults back if missing
+        CursorRingDB.ringSize = ringSize
+        CursorRingDB.ringColor = ringColor
+        CursorRingDB.castColor = castColor
+        CursorRingDB.showOutOfCombat = showOutOfCombat
+        CursorRingDB.castStyle = castStyle
+        CursorRingDB.mouseTrail = mouseTrail
+        CursorRingDB.sparkleTrail = sparkleTrail
+        CursorRingDB.trailFadeTime = trailFadeTime
+        CursorRingDB.trailColor = trailColor
 
-    CreateOptionsPanel()
-	end
-
+        CreateOptionsPanel()
+    end
 end)
