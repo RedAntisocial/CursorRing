@@ -1,5 +1,6 @@
 -- Default ring size... because if I let it be decided by the image size, it's HUUUUUGE
 local ringSize, ringColor, castColor, showOutOfCombat
+local sparkleCheckbox, sparkleTrail, mouseTrail, trailFadeTime, trailColor
 
 -- Load saved settings or create default table
 CursorRingDB = CursorRingDB or {}
@@ -32,6 +33,14 @@ local ring, leftHalf, rightHalf, castSegments
 local casting = false
 local castStart, castEnd = 0, 0
 local panelLoaded = false
+
+-- Mouse trail variables
+local trailGroup = {}
+local sparkleGroup = {}
+local MAX_TRAIL_POINTS = 20
+local NUM_CAST_SEGMENTS = 100
+local hasCastSegments = false
+
 
 -- Number of segments for the cast bar (100 segments for 1/100th textures)
 local NUM_CAST_SEGMENTS = 100
@@ -138,11 +147,87 @@ local function CreateCursorRing()
     rightHalf:SetAllPoints()
     rightHalf:SetVertexColor(1,1,1,0)
 
+    -- Create Mouse Trail  textures
+    local function CreateTrailTexture(parent)
+        local tex = parent:CreateTexture(nil, "BACKGROUND")
+        tex:SetTexture("Interface\\AddOns\\CursorRing\\trail_glow.tga")
+        tex:SetBlendMode("ADD")
+        tex:SetAlpha(0)
+        tex:SetSize((ringSize or 64) * 0.5, (ringSize or 64) * 0.5)
+        return tex
+    end
+
+    local function CreateSparkleTexture(parent)
+        local tex = parent:CreateTexture(nil, "ARTWORK")
+        tex:SetTexture("Interface\\AddOns\\CursorRing\\sparkle.tga")
+        tex:SetBlendMode("ADD")
+        tex:SetAlpha(0)
+        tex:SetSize(32, 32)
+        return tex
+    end
+
     -- OnUpdate: move to cursor and fill while casting
     f:SetScript("OnUpdate", function(self)
         local x, y = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+
+        -- Mouse trail
+        if mouseTrail then
+            local worldX, worldY = x / scale, y / scale
+            local now = GetTime()
+
+            table.insert(trailGroup, {x = worldX, y = worldY, created = now})
+
+            -- Trim oldest points if over limit
+            while #trailGroup > MAX_TRAIL_POINTS do
+                local old = table.remove(trailGroup, 1)
+                if old and old.tex then old.tex:Hide() end
+                if old and old.sparkle then old.sparkle:Hide() end
+            end
+
+            -- Iterate backwards to safely remove expired points
+            for i = #trailGroup, 1, -1 do
+                local point = trailGroup[i]
+                local age = now - point.created
+                local fade = 1 - (age / trailFadeTime)
+                if fade <= 0 then
+                    if point.tex then point.tex:Hide() end
+                    if point.sparkle then point.sparkle:Hide() end
+                    table.remove(trailGroup, i)
+                else
+                    if not point.tex then point.tex = CreateTrailTexture(self) end
+                    point.tex:ClearAllPoints()
+                    point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
+                    local rc = trailColor or {r=1,g=1,b=1}
+                    point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade * 0.8, 0, 1))
+                    point.tex:SetAlpha(fade)
+                    local size = (ringSize or 64) * 0.4 * fade
+                    point.tex:SetSize(size, size)
+                    point.tex:Show()
+
+                    -- Add Sparkles!!!!
+                    if sparkleTrail then
+                        if not point.sparkle then
+                            point.sparkle = CreateSparkleTexture(self)
+                        end
+
+                        -- Random offset around the mouseTrail
+                        local sparkleOffsetRange = 12 -- pixels
+                        local dx = (math.random() - 0.5) * 2 * sparkleOffsetRange
+                        local dy = (math.random() - 0.5) * 2 * sparkleOffsetRange
+
+                        point.sparkle:ClearAllPoints()
+                        point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
+                        
+                        local flicker = 1.7 + math.random() * 1.3
+                        point.sparkle:SetAlpha(Clamp(fade * flicker, 0, 1))
+
+                        point.sparkle:Show()
+                    end
+                end
+            end
+        end
 
         if casting then
             local now = GetTime()
@@ -459,12 +544,20 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
         b = defaultClassColor.b
     }
     castColor = CursorRingDB.castColor or {r = 1, g = 1, b = 1}
+        mouseTrail = CursorRingDB.mouseTrail or false
+        sparkleTrail = CursorRingDB.sparkleTrail or false
+        trailFadeTime = CursorRingDB.trailFadeTime or 0.6
+        trailColor = CursorRingDB.trailColor or {r = 1, g = 1, b = 1}
 
     -- Save defaults back if missing
     CursorRingDB.ringSize = ringSize
     CursorRingDB.ringColor = ringColor
     CursorRingDB.castColor = castColor
     CursorRingDB.showOutOfCombat = showOutOfCombat
+    CursorRingDB.mouseTrail = mouseTrail
+    CursorRingDB.sparkleTrail = sparkleTrail
+    CursorRingDB.trailFadeTime = trailFadeTime
+    CursorRingDB.trailColor = trailColor
 
     CreateOptionsPanel()
 	end
