@@ -36,9 +36,9 @@ local panelLoaded = false
 local castStyle = "ring"
 
 -- Mouse trail variables
-local trailGroup = {}
-local sparkleGroup = {}
-local MAX_TRAIL_POINTS = 20
+local trailGroup = {} -- TODO: on/off to menu
+local sparkleGroup = {} -- TODO: on/off to menu dependent on trail
+local MAX_TRAIL_POINTS = 20 -- TODO: add this to menu as slider
 local NUM_CAST_SEGMENTS = 100
 local hasCastSegments = false
 
