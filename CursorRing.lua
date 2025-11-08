@@ -1,9 +1,10 @@
--- Default ring size... because if I let it be decided by the image size, it's HUUUUUGE
-local ringSize, ringColor, castColor, showOutOfCombat
-local trailCheckbox, sparkleCheckbox, mouseTrail, sparkleTrail, sparkleOffsetRange, trailFadeTime, trailColor
+-- Declaring local variables.
+local ringEnabled, ringSize, ringColor, castColor, showOutOfCombat
+local trailCheckbox, sparkleCheckbox, mouseTrail, mouseTrailActive, sparkleTrail, sparkleOffsetRange, trailFadeTime, trailColor
 
--- Load saved settings or create default table
+-- Start loading the default variables
 CursorRingDB = CursorRingDB or {}
+ringEnabled = CursorRingDB.ringEnabled or true
 ringSize = CursorRingDB.ringSize or 64
 showOutOfCombat = CursorRingDB.showOutOfCombat or true
 
@@ -111,56 +112,27 @@ local function UpdateCastColor(r, g, b)
     CursorRingDB.castColor = castColor
 end
 
--- Function to check if ring should be visible
-local function ShouldShowRing()
-    -- Always show in combat
-    if InCombatLockdown() then
+-- Function to check if ring/trail should be visible outside of combat/instances
+local function ShouldShowAllowedByCombatRules()
+    if InCombatLockdown() then return true end
+    local inInst, t = IsInInstance()
+    if inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario") then
         return true
     end
-
-    -- Always show in instances (dungeons, raids, battlegrounds, arenas)
-    local inInstance, instanceType = IsInInstance()
-    if inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena" or instanceType == "scenario") then
-        return true
-    end
-
-    -- Otherwise, use the user setting
     return showOutOfCombat
 end
 
 -- Function to update ring visibility based on current conditions
 local function UpdateRingVisibility()
-    if not ring or not ring:GetParent() then return end
-
-    local shouldShow = ShouldShowRing()
-    if shouldShow then
-        ring:GetParent():Show()
-    else
-        ring:GetParent():Hide()
+    if ring then
+        ring:SetShown(ringEnabled and ShouldShowAllowedByCombatRules())
     end
 end
--- Function to check if trail should be visible
-local function ShouldShowTrail()
-    -- Always show in combat
-    if InCombatLockdown() then
-        return true
-    end
-
-    -- Always show in instances (dungeons, raids, battlegrounds, arenas)
-    local inInstance, instanceType = IsInInstance()
-    if inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena" or instanceType == "scenario") then
-        return true
-    end
-
-    -- Otherwise, use the user setting
-    return showOutOfCombat
-end --
 
 -- Function to update mouse trail visibility
 local function UpdateMouseTrailVisibility()
-    local shouldShow = ShouldShowTrail()
-    local mouseTrail = CursorRingDB.mouseTrail or false
-    if shouldShow and mouseTrail == true then
+    mouseTrailActive = mouseTrail and ShouldShowAllowedByCombatRules()
+    if mouseTrailActive then
         for i, point in ipairs(trailGroup) do
             if point.tex then
                 point.tex:SetAlpha(1)
@@ -193,6 +165,7 @@ local function UpdateShowOutOfCombat(show)
     showOutOfCombat = show
     CursorRingDB.showOutOfCombat = show
     UpdateRingVisibility()
+    UpdateMouseTrailVisibility()
 end
 
 -- Function to create the cursor ring frame
@@ -200,7 +173,7 @@ local function CreateCursorRing()
     if ring then return end -- prevent multiple frames
     local f = CreateFrame("Frame", nil, UIParent)
     f:SetSize(ringSize, ringSize)
-    f:SetFrameStrata("HIGH")
+    f:SetFrameStrata("TOOLTIP")
 
     -- Outer class-colored ring
     local ringTex = f:CreateTexture(nil, "ARTWORK")
@@ -268,7 +241,7 @@ local function CreateCursorRing()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
         -- print("MouseTrail: ", mouseTrail)
         -- Mouse trail
-        if mouseTrail == true then
+        if mouseTrailActive == true then
             local worldX, worldY = x / scale, y / scale
             local now = GetTime()
 
@@ -413,6 +386,35 @@ local function CreateCursorRing()
     UpdateRingVisibility()
 end
 
+-- Setting the styles for the Options Panel
+-- Start with the color picker buttons
+
+local function StyleColorButtonInset(button)
+    local w, h = button:GetSize()
+
+    -- Background
+    local bg = button:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(button)
+    bg:SetColorTexture(0, 0, 0, 0.3) -- semi-transparent dark
+
+    -- Outer border (black)
+    local border = button:CreateTexture(nil, "BORDER")
+    border:SetPoint("TOPLEFT", -1, 1)
+    border:SetPoint("BOTTOMRIGHT", 1, -1)
+    border:SetColorTexture(0, 0, 0, 1)
+
+    -- Inner highlight (top-left inset)
+    local highlight = button:CreateTexture(nil, "OVERLAY")
+    highlight:SetPoint("TOPLEFT", -1, 1)
+    highlight:SetPoint("BOTTOMRIGHT", 0, 0)
+    highlight:SetColorTexture(1, 1, 1, 0.1)
+
+    -- Keep original swatch texture on top
+    if button:GetNormalTexture() then
+        button:GetNormalTexture():SetDrawLayer("OVERLAY", 1)
+    end
+end
+
 -- Function to create the options panel (this was a pain in the ass. Make sure you rip code off of newer addons next time dumbass)
 local function CreateOptionsPanel()
     if panelLoaded then return end
@@ -431,20 +433,36 @@ local function CreateOptionsPanel()
 
     local outOfCombatLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     outOfCombatLabel:SetPoint("LEFT", outOfCombatCheckbox, "RIGHT", 5, 0)
-    outOfCombatLabel:SetText("Show ring outside of combat/instances")
+    outOfCombatLabel:SetText("Show Ring and Mouse Trail outside of combat/instances")
 
     outOfCombatCheckbox:SetChecked(showOutOfCombat)
     outOfCombatCheckbox:SetScript("OnClick", function(self)
         UpdateShowOutOfCombat(self:GetChecked())
     end)
 
+    -- Enable Ring Checkbox
+    local ringToggle = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    ringToggle:SetPoint("TOPLEFT", outOfCombatCheckbox, "BOTTOMLEFT", 0, -8) -- anchor as you wish
+    ringToggle:SetChecked(ringEnabled)
+    ringToggle:SetScript("OnClick", function(self)
+        ringEnabled = self:GetChecked()
+        CursorRingDB.ringEnabled = ringEnabled
+        UpdateRingVisibility()
+    end)
+
+    local lbl = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    lbl:SetPoint("LEFT", ringToggle, "RIGHT", 5, 0)
+    lbl:SetText("Enable Cursor Ring")
+
     -- Ring Size Slider
     local slider = CreateFrame("Slider", "CursorRingSizeSlider", panel, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", outOfCombatCheckbox, "BOTTOMLEFT", 0, -30)
+    slider:SetPoint("TOPLEFT", ringToggle, "BOTTOMLEFT", 0, -30)
     slider:SetMinMaxValues(32, 256)
     slider:SetValueStep(1)
     slider:SetObeyStepOnDrag(true)
     slider:SetValue(ringSize)
+    slider.Low:SetText("Small")
+    slider.High:SetText("Large")
     _G[slider:GetName() .. "Text"]:SetText("Ring Size")
 
     slider:SetScript("OnValueChanged", function(self, value)
@@ -455,13 +473,16 @@ local function CreateOptionsPanel()
     local ringColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     ringColorLabel:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -40)
     ringColorLabel:SetText("Ring Color:")
-
+ 
     -- Ring Color Picker Button
     local ringColorButton = CreateFrame("Button", nil, panel)
     ringColorButton:SetPoint("LEFT", ringColorLabel, "RIGHT", 40, 0)
-    ringColorButton:SetSize(40, 20)
+    ringColorButton:SetSize(16, 16)
 
-    local ringColorTexture = ringColorButton:CreateTexture(nil, "BACKGROUND")
+    -- Apply inset style 
+    StyleColorButtonInset(ringColorButton)
+
+    local ringColorTexture = ringColorButton:CreateTexture(nil, "ARTWORK")
     ringColorTexture:SetAllPoints()
     ringColorTexture:SetColorTexture(ringColor.r, ringColor.g, ringColor.b, 1)
 
@@ -509,9 +530,12 @@ local function CreateOptionsPanel()
     -- Cast Color Picker Button
     local castColorButton = CreateFrame("Button", nil, panel)
     castColorButton:SetPoint("LEFT", castColorLabel, "RIGHT", 10, 0)
-    castColorButton:SetSize(40, 20)
+    castColorButton:SetSize(16, 16)
 
-    local castColorTexture = castColorButton:CreateTexture(nil, "BACKGROUND")
+    -- Apply inset style 
+    StyleColorButtonInset(castColorButton)
+
+    local castColorTexture = castColorButton:CreateTexture(nil, "ARTWORK")
     castColorTexture:SetAllPoints()
     castColorTexture:SetColorTexture(castColor.r, castColor.g, castColor.b, 1)
 
@@ -601,7 +625,7 @@ local function CreateOptionsPanel()
     mouseTrailCheckbox:SetChecked(mouseTrail)
     mouseTrailCheckbox:SetScript("OnClick", function(self)
         mouseTrail = self:GetChecked()
-        print("Mouse Trail set to:", mouseTrail)
+        -- print("Mouse Trail set to:", mouseTrail)
         UpdateMouseTrail(mouseTrail)
     end)
     -- Mouse Trail Checkbox
@@ -617,7 +641,7 @@ local function CreateOptionsPanel()
     sparkleCheckbox:SetScript("OnClick", function(self)
         sparkleTrail = self:GetChecked()
         CursorRingDB.sparkleTrail = sparkleTrail
-        print("Sparkle Trail set to:", sparkleTrail)
+        -- print("Sparkle Trail set to:", sparkleTrail)
     end)
     local sparkleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     sparkleLabel:SetPoint("LEFT", sparkleCheckbox, "RIGHT", 5, 0)
@@ -628,11 +652,16 @@ local function CreateOptionsPanel()
     local trailColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     trailColorLabel:SetPoint("TOPLEFT", mouseTrailCheckbox, "BOTTOMLEFT", 0, -40)
     trailColorLabel:SetText("Mouse Trail Color:")
+
     -- Mouse Trail Color Picker Button
     local trailColorButton = CreateFrame("Button", nil, panel)
     trailColorButton:SetPoint("LEFT", trailColorLabel, "RIGHT", 10, 0)
-    trailColorButton:SetSize(40, 20)
-    local trailColorTexture = trailColorButton:CreateTexture(nil, "BACKGROUND")
+    trailColorButton:SetSize(16, 16)
+
+    -- Apply inset style
+    StyleColorButtonInset(trailColorButton)
+
+    local trailColorTexture = trailColorButton:CreateTexture(nil, "ARTWORK")
     trailColorTexture:SetAllPoints()
     local trailColor = CursorRingDB.trailColor or { r = 1, g = 1, b = 1 }
     trailColorTexture:SetColorTexture(trailColor.r, trailColor.g, trailColor.b, 1)
@@ -679,11 +708,16 @@ local function CreateOptionsPanel()
     local sparkleColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     sparkleColorLabel:SetPoint("TOPLEFT", sparkleCheckbox, "BOTTOMLEFT", 0, -40)
     sparkleColorLabel:SetText("Sparkle Color:")
+
     -- Sparkle Trail Color Picker ButtonBindingToIndex
     local sparkleColorButton = CreateFrame("Button", nil, panel)
     sparkleColorButton:SetPoint("LEFT", sparkleColorLabel, "RIGHT", 10, 0)
-    sparkleColorButton:SetSize(40, 20)
-    local sparkleColorTexture = sparkleColorButton:CreateTexture(nil, "BACKGROUND")
+    sparkleColorButton:SetSize(16, 16)
+
+    -- Apply inset style
+    StyleColorButtonInset(sparkleColorButton)
+
+    local sparkleColorTexture = sparkleColorButton:CreateTexture(nil, "ARTWORK")
     sparkleColorTexture:SetAllPoints()
     local sparkleColor = CursorRingDB.sparkleColor or { r = 1, g = 1, b = 1 }
     sparkleColorTexture:SetColorTexture(sparkleColor.r, sparkleColor.g, sparkleColor.b, 1)
@@ -728,12 +762,14 @@ local function CreateOptionsPanel()
     -- MouseTrail Fade Time Slider
     local fadeTimeSlider = CreateFrame("Slider", "CursorRingTrailFadeTimeSlider", panel, "OptionsSliderTemplate")
     fadeTimeSlider:SetPoint("TOPLEFT", trailColorLabel, "BOTTOMLEFT", 0, -40)
-    fadeTimeSlider:SetMinMaxValues(0.1, 3.0)
+    fadeTimeSlider:SetMinMaxValues(0.1, 6.0)
     fadeTimeSlider:SetValue(CursorRingDB.fadeTime or 1.0)
     fadeTimeSlider:SetValueStep(0.1)
     fadeTimeSlider:SetScript("OnValueChanged", function(self, value)
         CursorRingDB.fadeTime = value
     end)
+    fadeTimeSlider.Low:SetText("Short")
+    fadeTimeSlider.High:SetText("Long")
     _G[fadeTimeSlider:GetName() .. "Text"]:SetText("Mouse Trail Length")
 
 
@@ -794,6 +830,7 @@ addon:SetScript("OnEvent", function(self, event, arg1, ...)
         event == "ZONE_CHANGED_NEW_AREA" then
         -- Combat or zone changed, update ring visibility
         UpdateRingVisibility()
+        UpdateMouseTrailVisibility()
     elseif event == "ADDON_LOADED" and arg1 == "CursorRing" then
         CursorRingDB = CursorRingDB or {}
 
