@@ -435,6 +435,8 @@ local function CreateOptionsPanel()
     local ringColorButton = CreateFrame("Button", nil, panel)
     ringColorButton:SetPoint("LEFT", ringColorLabel, "RIGHT", 40, 0)
     ringColorButton:SetSize(16, 16)
+
+    -- Apply inset style to color button
     StyleColorButtonInset(ringColorButton)
 
     local ringColorTexture = ringColorButton:CreateTexture(nil, "ARTWORK")
@@ -466,11 +468,13 @@ local function CreateOptionsPanel()
             UpdateRingColor(previous.r, previous.g, previous.b)
         end
 
+        -- Use available color picker API
         local colorPickerFrame = _G["ColorPickerFrame"]
         if colorPickerFrame then
             if colorPickerFrame.SetupColorPickerAndShow then
                 colorPickerFrame:SetupColorPickerAndShow(info)
             else
+                -- Fallback for older versions
                 colorPickerFrame.func = info.swatchFunc
                 colorPickerFrame.cancelFunc = info.cancelFunc
                 if colorPickerFrame.SetColorRGB then
@@ -490,6 +494,8 @@ local function CreateOptionsPanel()
     local castColorButton = CreateFrame("Button", nil, panel)
     castColorButton:SetPoint("LEFT", castColorLabel, "RIGHT", 10, 0)
     castColorButton:SetSize(16, 16)
+
+    -- Apply inset style to color button
     StyleColorButtonInset(castColorButton)
 
     local castColorTexture = castColorButton:CreateTexture(nil, "ARTWORK")
@@ -521,11 +527,13 @@ local function CreateOptionsPanel()
             UpdateCastColor(previous.r, previous.g, previous.b)
         end
 
+        -- Use available color picker API
         local colorPickerFrame = _G["ColorPickerFrame"]
         if colorPickerFrame then
             if colorPickerFrame.SetupColorPickerAndShow then
                 colorPickerFrame:SetupColorPickerAndShow(info)
             else
+                -- Fallback for older versions
                 colorPickerFrame.func = info.swatchFunc
                 colorPickerFrame.cancelFunc = info.cancelFunc
                 if colorPickerFrame.SetColorRGB then
@@ -616,7 +624,7 @@ local function CreateOptionsPanel()
     sparkleLabel:SetPoint("LEFT", sparkleCheckbox, "RIGHT", 5, 0)
     sparkleLabel:SetText("Enable Sparkle Effect on Mouse Trail")
 
-    -- Trail Color Picker
+    -- Mouse Trail Color Picker
     trailColor = specDB.trailColor or { r = 1, g = 1, b = 1 }
     local trailColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     trailColorLabel:SetPoint("TOPLEFT", mouseTrailCheckbox, "BOTTOMLEFT", 0, -40)
@@ -625,6 +633,8 @@ local function CreateOptionsPanel()
     local trailColorButton = CreateFrame("Button", nil, panel)
     trailColorButton:SetPoint("LEFT", trailColorLabel, "RIGHT", 10, 0)
     trailColorButton:SetSize(16, 16)
+
+    -- Apply inset style to color button
     StyleColorButtonInset(trailColorButton)
 
     local trailColorTexture = trailColorButton:CreateTexture(nil, "ARTWORK")
@@ -654,11 +664,13 @@ local function CreateOptionsPanel()
             SaveSpecSettings()
         end
 
+        -- Use available color picker API
         local colorPickerFrame = _G["ColorPickerFrame"]
         if colorPickerFrame then
             if colorPickerFrame.SetupColorPickerAndShow then
                 colorPickerFrame:SetupColorPickerAndShow(info)
             else
+                -- Fallback for older versions
                 colorPickerFrame.func = info.swatchFunc
                 colorPickerFrame.cancelFunc = info.cancelFunc
                 if colorPickerFrame.SetColorRGB then
@@ -678,6 +690,8 @@ local function CreateOptionsPanel()
     local sparkleColorButton = CreateFrame("Button", nil, panel)
     sparkleColorButton:SetPoint("LEFT", sparkleColorLabel, "RIGHT", 10, 0)
     sparkleColorButton:SetSize(16, 16)
+
+    -- Apply inset style to color button
     StyleColorButtonInset(sparkleColorButton)
 
     local sparkleColorTexture = sparkleColorButton:CreateTexture(nil, "ARTWORK")
@@ -707,11 +721,13 @@ local function CreateOptionsPanel()
             SaveSpecSettings()
         end
 
+        -- Use available color picker API
         local colorPickerFrame = _G["ColorPickerFrame"]
         if colorPickerFrame then
             if colorPickerFrame.SetupColorPickerAndShow then
                 colorPickerFrame:SetupColorPickerAndShow(info)
             else
+                -- Fallback for older versions
                 colorPickerFrame.func = info.swatchFunc
                 colorPickerFrame.cancelFunc = info.cancelFunc
                 if colorPickerFrame.SetColorRGB then
