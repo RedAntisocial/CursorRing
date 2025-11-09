@@ -2,18 +2,77 @@
 local ringEnabled, ringSize, ringColor, castColor, showOutOfCombat
 local trailCheckbox, sparkleCheckbox, mouseTrail, mouseTrailActive, sparkleTrail, sparkleOffsetRange, trailFadeTime, trailColor
 
--- Start loading the default variables
+-- Load in the SavedVariables DB
 CursorRingDB = CursorRingDB or {}
-ringEnabled = CursorRingDB.ringEnabled or true
-ringSize = CursorRingDB.ringSize or 64
-showOutOfCombat = CursorRingDB.showOutOfCombat or true
 
--- Get class color as default for main ring
-local _, class = UnitClass("player")
-local defaultClassColor = RAID_CLASS_COLORS[class]
-local ringColor = CursorRingDB.ringColor or { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
-local castColor = CursorRingDB.castColor or { r = 1, g = 1, b = 1 }                                  -- Default to white
-local showOutOfCombat = CursorRingDB.showOutOfCombat or CursorRingDB.showOutOfCombat == nil and true -- Default to true
+-- Get the player's current spec key
+local function GetCurrentSpecKey()
+    local specIndex = GetSpecialization()
+    if not specIndex then return "NoSpec" end
+    local _, specName = GetSpecializationInfo(specIndex)
+    return specName or ("Spec"..specIndex)
+end
+
+-- Load per-spec settings
+local function LoadSpecSettings()
+    local specKey = GetCurrentSpecKey()
+    CursorRingDB[specKey] = CursorRingDB[specKey] or {}
+    local specDB = CursorRingDB[specKey]
+
+    ringEnabled = specDB.ringEnabled
+    if ringEnabled == nil then ringEnabled = true end
+
+    ringSize = specDB.ringSize or 64
+    showOutOfCombat = specDB.showOutOfCombat
+    if showOutOfCombat == nil then showOutOfCombat = true end
+
+    local _, class = UnitClass("player")
+    local defaultClassColor = RAID_CLASS_COLORS[class]
+
+    ringColor = specDB.ringColor or { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
+    castColor = specDB.castColor or { r = 1, g = 1, b = 1 }
+
+    castStyle = specDB.castStyle or "ring"
+    mouseTrail = specDB.mouseTrail or false
+    sparkleTrail = specDB.sparkleTrail or false
+    trailFadeTime = specDB.trailFadeTime or 0.6
+    trailColor = specDB.trailColor or { r = 1, g = 1, b = 1 }
+
+    -- Save defaults back if missing
+    specDB.ringEnabled = ringEnabled
+    specDB.ringSize = ringSize
+    specDB.ringColor = ringColor
+    specDB.castColor = castColor
+    specDB.showOutOfCombat = showOutOfCombat
+    specDB.castStyle = castStyle
+    specDB.mouseTrail = mouseTrail
+    specDB.sparkleTrail = sparkleTrail
+    specDB.trailFadeTime = trailFadeTime
+    specDB.trailColor = trailColor
+
+    return specDB
+end
+
+-- Save settings per-spec
+local function SaveSpecSettings()
+    local specKey = GetCurrentSpecKey()
+    CursorRingDB[specKey] = CursorRingDB[specKey] or {}
+    local specDB = CursorRingDB[specKey]
+
+    specDB.ringEnabled = ringEnabled
+    specDB.ringSize = ringSize
+    specDB.ringColor = ringColor
+    specDB.castColor = castColor
+    specDB.showOutOfCombat = showOutOfCombat
+    specDB.castStyle = castStyle
+    specDB.mouseTrail = mouseTrail
+    specDB.sparkleTrail = sparkleTrail
+    specDB.trailFadeTime = trailFadeTime
+    specDB.trailColor = trailColor
+end
+
+-- Get the current spec settings on load
+local specDB = LoadSpecSettings()
 
 local addon = CreateFrame("Frame")
 addon:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -50,7 +109,8 @@ local NUM_CAST_SEGMENTS = 240
 -- Function to update ring size
 local function UpdateRingSize(size)
     ringSize = size
-    CursorRingDB.ringSize = size
+    specDB.ringSize = size
+    SaveSpecSettings()
     if ring and ring:GetParent() then
         ring:GetParent():SetSize(ringSize, ringSize)
     end
@@ -59,7 +119,8 @@ end
 -- Function to update ring color
 local function UpdateRingColor(r, g, b)
     ringColor.r, ringColor.g, ringColor.b = r, g, b
-    CursorRingDB.ringColor = ringColor
+    specDB.ringColor = ringColor
+    SaveSpecSettings()
     if ring then
         ring:SetVertexColor(r, g, b, 1)
     end
@@ -68,7 +129,8 @@ end
 -- Function to update cast style
 local function UpdateCastStyle(style)
     castStyle = style
-    CursorRingDB.castStyle = style
+    specDB.castStyle = style
+    SaveSpecSettings()
     print("Cast style updated to:", style)
 
     -- Recreate cast segments with new texture if they exist
@@ -109,7 +171,8 @@ end
 -- Function to update cast color
 local function UpdateCastColor(r, g, b)
     castColor.r, castColor.g, castColor.b = r, g, b
-    CursorRingDB.castColor = castColor
+    specDB.castColor = castColor
+    SaveSpecSettings()
 end
 
 -- Function to check if ring/trail should be visible outside of combat/instances
@@ -156,14 +219,16 @@ end
 -- Function to update mouse trail setting
 local function UpdateMouseTrail(enabled)
     mouseTrail = enabled
-    CursorRingDB.mouseTrail = enabled
+    specDB.mouseTrail = enabled
+    SaveSpecSettings()
     UpdateMouseTrailVisibility()
 end
 
 -- Function to update out of combat visibility setting
 local function UpdateShowOutOfCombat(show)
     showOutOfCombat = show
-    CursorRingDB.showOutOfCombat = show
+    specDB.showOutOfCombat = show
+    SaveSpecSettings()
     UpdateRingVisibility()
     UpdateMouseTrailVisibility()
 end
