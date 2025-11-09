@@ -723,18 +723,18 @@ local function CreateOptionsPanel()
     end)
 
     -- Mouse Trail Fade Slider
-    local fadeTime = specDB.fadeTime or 1.0
+    trailFadeTime = specDB.trailFadeTime or 1.0
     local fadeTimeSlider = CreateFrame("Slider", "CursorRingTrailFadeTimeSlider", panel, "OptionsSliderTemplate")
     fadeTimeSlider:SetPoint("TOPLEFT", trailColorLabel, "BOTTOMLEFT", 0, -40)
     fadeTimeSlider:SetMinMaxValues(0.1, 6.0)
     fadeTimeSlider:SetValueStep(0.1)
-    fadeTimeSlider:SetValue(fadeTime)
+    fadeTimeSlider:SetValue(trailFadeTime)
     fadeTimeSlider.Low:SetText("Short")
     fadeTimeSlider.High:SetText("Long")
     _G[fadeTimeSlider:GetName() .. "Text"]:SetText("Mouse Trail Length")
     fadeTimeSlider:SetScript("OnValueChanged", function(self, value)
-        fadeTime = value
-        specDB.fadeTime = fadeTime
+        trailFadeTime = value
+        specDB.trailFadeTime = trailFadeTime
         SaveSpecSettings()
     end)
 
