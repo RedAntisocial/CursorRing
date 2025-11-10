@@ -72,22 +72,28 @@ If `cast_segment.tga` is missing, the addon uses the half-circle fallback animat
 
 ## Installation
 
-1. Extract the addon into your WoW AddOns directory:
+1. Grab the addon from your favourite addon manager (Wago or CurseForge etc.)
+   ```
+   That's the easiest way to do it.
+3. Extract the addon into your WoW AddOns directory:
 
    ```
    World of Warcraft/_retail_/Interface/AddOns/CursorRing/
    ```
-2. Ensure the following files exist:
+4. Ensure the following files exist:
 
    ```
    CursorRing.lua
    CursorRing.toc
    ring.tga
-   innerring_left.tga
-   innerring_right.tga
-   (optional) cast_segment.tga
+   cast_segment.tga
+   cast_wedge.tga
+   sparkle.tga
+   trail_glow.tga
+   innerring_left.tga (optional/legacy)
+   innerring_right.tga (optional/legacy)
    ```
-3. Restart WoW or use `/reload`.
+5. Type `/reload`.
 
 ---
 
