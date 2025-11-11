@@ -14,7 +14,7 @@ local NUM_CAST_SEGMENTS = 240
 local outerRingOptions = {
     { name = "Ring", file = "ring.tga", style = "ring" },
     { name = "Thin Ring",   file = "thin_ring.tga", style = "ring" },
-    { name = "Star",    file = "star.tga", style = "ring" },
+    -- { name = "Star",    file = "star.tga", style = "ring" },
     -- { name = "Heart",   file = "heart.tga", style = "ring" },
 }
 
