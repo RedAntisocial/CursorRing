@@ -1,6 +1,6 @@
 -- CursorRing.lua
 -- Local variables
-local ring, ringEnabled, ringSize, ringColor, castColor, showOutOfCombat
+local ring, ringEnabled, ringSize, ringColor, ringTexture, castColor, showOutOfCombat
 local casting, castStyle, mouseTrail, mouseTrailActive, sparkleTrail, trailFadeTime, trailColor, sparkleColor
 local castSegments, leftHalf, rightHalf
 local panelLoaded = false
@@ -8,6 +8,15 @@ local panelFrame = nil
 local trailGroup = {}
 local MAX_TRAIL_POINTS = 20
 local NUM_CAST_SEGMENTS = 240
+
+
+-- Outer Ring Options
+local outerRingOptions = {
+    { name = "Ring", file = "ring.tga", style = "ring" },
+    { name = "Thin Ring",   file = "thin_ring.tga", style = "ring" },
+    { name = "Star",    file = "star.tga", style = "ring" },
+    -- { name = "Heart",   file = "heart.tga", style = "ring" },
+}
 
 -- SavedVariables DB
 CursorRingDB = CursorRingDB or {}
@@ -42,6 +51,9 @@ local function LoadSpecSettings()
     local _, class = UnitClass("player")
     local defaultClassColor = RAID_CLASS_COLORS[class]
 
+    -- Ring Texture
+    ringTexture = specDB.ringTexture or "ring.tga"
+
     ringColor = specDB.ringColor or { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
     castColor = specDB.castColor or { r = 1, g = 1, b = 1 }
 
@@ -56,6 +68,7 @@ local function LoadSpecSettings()
     specDB.ringEnabled = ringEnabled
     specDB.ringSize = ringSize
     specDB.ringColor = ringColor
+    specDB.ringTexture = ringTexture
     specDB.castColor = castColor
     specDB.showOutOfCombat = showOutOfCombat
     specDB.castStyle = castStyle
@@ -77,6 +90,7 @@ local function SaveSpecSettings()
     specDB.ringEnabled = ringEnabled
     specDB.ringSize = ringSize
     specDB.ringColor = ringColor
+    specDB.ringTexture = ringTexture
     specDB.castColor = castColor
     specDB.showOutOfCombat = showOutOfCombat
     specDB.castStyle = castStyle
@@ -105,6 +119,15 @@ local function UpdateRingSize(size)
     end
 end
 
+-- Update Ring Texture/Shape
+local function UpdateRingTexture(textureFile)
+    if ring then
+        ring:SetTexture("Interface\\AddOns\\CursorRing\\"..textureFile)
+    end
+    GetSpecDB().ringTexture = textureFile
+    SaveSpecSettings()
+end
+
 -- Spec specific Ring Color update
 local function UpdateRingColor(r, g, b)
     ringColor.r, ringColor.g, ringColor.b = r, g, b
@@ -122,31 +145,42 @@ local function UpdateCastColor(r, g, b)
     SaveSpecSettings()
 end
 
--- Update Cast Style (wedge or ring. Ring is better, but some people want wedge)
+-- Update Cast Style (fill or ring. Ring is better, but some people want fill)
 local function UpdateCastStyle(style)
     castStyle = style
     GetSpecDB().castStyle = castStyle
     SaveSpecSettings()
 
-    if castSegments and ring and ring:GetParent() then
-        local f = ring:GetParent()
-        for i = 1, NUM_CAST_SEGMENTS do
+    if not ring or not ring:GetParent() then return end
+
+    local f = ring:GetParent()
+    -- Clear existing segments (fix for segments not sodding off when changing styles)
+    if castSegments then
+        for i=1,NUM_CAST_SEGMENTS do
             if castSegments[i] then
                 castSegments[i]:Hide()
                 castSegments[i] = nil
             end
         end
-        castSegments = {}
-        for i = 1, NUM_CAST_SEGMENTS do
-            local segment = f:CreateTexture(nil, "OVERLAY")
-            local texturePath = castStyle == "wedge" and "Interface\\AddOns\\CursorRing\\cast_wedge.tga" or "Interface\\AddOns\\CursorRing\\cast_segment.tga"
-            segment:SetTexture(texturePath, "CLAMP")
-            segment:SetAllPoints()
-            segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
-            segment:SetVertexColor(1, 1, 1, 0)
-            castSegments[i] = segment
-        end
     end
+    castSegments = {}
+
+    -- Create segments
+    for i=1,NUM_CAST_SEGMENTS do
+        local segment = f:CreateTexture(nil, "BACKGROUND")
+        local texturePath = (castStyle == "fill") and "Interface\\AddOns\\CursorRing\\cast_wedge.tga" or "Interface\\AddOns\\CursorRing\\cast_segment.tga"
+        segment:SetTexture(texturePath, "CLAMP")
+        segment:SetAllPoints()
+        segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
+        segment:SetVertexColor(1, 1, 1, 0)
+        castSegments[i] = segment
+    end
+end
+
+-- Update Caast Segments for the selected shape
+local function UpdateCastSegmentsForShape(shape)
+    castStyle = shape  -- "ring" or "fill"
+    UpdateCastStyle(castStyle)
 end
 
 -- Determine if ring/trail should be shown based on combat/instance rules
@@ -201,32 +235,24 @@ local function CreateCursorRing()
 
     -- Outer ring
     ring = f:CreateTexture(nil, "ARTWORK")
-    ring:SetTexture("Interface\\AddOns\\CursorRing\\ring.tga", "CLAMP")
+    ring:SetTexture("Interface\\AddOns\\CursorRing\\"..(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
+    -- ring:SetTexture("Interface\\AddOns\\CursorRing\\ring.tga", "CLAMP")
     ring:SetAllPoints()
     ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
-
-    -- Inner halves for fallback
-    leftHalf = f:CreateTexture(nil, "OVERLAY")
-    leftHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_left.tga", "CLAMP")
-    leftHalf:SetAllPoints()
-    leftHalf:SetVertexColor(1, 1, 1, 0)
-
-    rightHalf = f:CreateTexture(nil, "OVERLAY")
-    rightHalf:SetTexture("Interface\\AddOns\\CursorRing\\innerring_right.tga", "CLAMP")
-    rightHalf:SetAllPoints()
-    rightHalf:SetVertexColor(1, 1, 1, 0)
 
     -- Cast segments
     castSegments = {}
     for i = 1, NUM_CAST_SEGMENTS do
-        local segment = f:CreateTexture(nil, "OVERLAY")
-        local texturePath = castStyle == "wedge" and "Interface\\AddOns\\CursorRing\\cast_wedge.tga" or "Interface\\AddOns\\CursorRing\\cast_segment.tga"
+        local segment = f:CreateTexture(nil, "BACKGROUND")
+        local texturePath = (castStyle == "fill") and "cast_wedge.tga" or "cast_segment.tga"
         segment:SetTexture(texturePath, "CLAMP")
         segment:SetAllPoints()
         segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
         segment:SetVertexColor(1, 1, 1, 0)
         castSegments[i] = segment
     end
+
+    UpdateCastStyle(castStyle)
 
     -- Mouse Trail
     local function CreateTrailTexture(parent)
@@ -293,55 +319,52 @@ local function CreateCursorRing()
         end
 
         -- Casting progress
+-- Casting progress
         if casting then
             local now = GetTime()
             local progress = 0
             local castName, _, _, castStartTime, castEndTime = UnitCastingInfo("player")
             local channelName, _, _, channelStartTime, channelEndTime = UnitChannelInfo("player")
+            
             if castName then
                 progress = (now - (castStartTime/1000)) / ((castEndTime - castStartTime)/1000)
             elseif channelName then
                 progress = 1 - ((now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000))
             else
                 casting = false
-                for i=1,NUM_CAST_SEGMENTS do castSegments[i]:SetVertexColor(1,1,1,0) end
-                leftHalf:SetVertexColor(1,1,1,0)
-                rightHalf:SetVertexColor(1,1,1,0)
+                -- Hide segments immediately if no cast info
+                if castSegments then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        if castSegments[i] then
+                            castSegments[i]:SetVertexColor(1,1,1,0)
+                        end
+                    end
+                end
                 return
             end
-            progress = Clamp(progress,0,1)
+
+            progress = Clamp(progress, 0, 1)
+            local segmentsToShow = math.floor(progress * NUM_CAST_SEGMENTS)
             if castSegments and castSegments[1]:GetTexture() then
-                local segmentsToShow = math.floor(progress*NUM_CAST_SEGMENTS)
-                for i=1,NUM_CAST_SEGMENTS do
+                for i = 1, NUM_CAST_SEGMENTS do
                     if i <= segmentsToShow then
                         castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
                     else
                         castSegments[i]:SetVertexColor(1,1,1,0)
                     end
                 end
-                leftHalf:SetVertexColor(1,1,1,0)
-                rightHalf:SetVertexColor(1,1,1,0)
-            else
-                local angle = progress*360
-                leftHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-                rightHalf:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-                if angle<=180 then
-                    rightHalf:SetRotation(math.rad(angle))
-                    leftHalf:SetRotation(0)
-                    leftHalf:SetVertexColor(1,1,1,0)
-                else
-                    rightHalf:SetRotation(math.rad(180))
-                    leftHalf:SetRotation(math.rad(angle-180))
-                end
-                for i=1,NUM_CAST_SEGMENTS do castSegments[i]:SetVertexColor(1,1,1,0) end
             end
         else
-            for i=1,NUM_CAST_SEGMENTS do castSegments[i]:SetVertexColor(1,1,1,0) end
-            leftHalf:SetVertexColor(1,1,1,0)
-            rightHalf:SetVertexColor(1,1,1,0)
+            -- Ensure segments are hidden if not casting
+            if castSegments then
+                for i = 1, NUM_CAST_SEGMENTS do
+                    if castSegments[i] then
+                        castSegments[i]:SetVertexColor(1,1,1,0)
+                    end
+                end
+            end
         end
     end)
-
     UpdateRingVisibility()
 end
 
@@ -485,6 +508,47 @@ local function CreateOptionsPanel()
         end
     end)
 
+ -- Cursor Ring Shape / Texture Dropdown
+    local ringTextureLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    ringTextureLabel:SetPoint("LEFT", ringColorButton, "RIGHT", 120, 0)
+    ringTextureLabel:SetText("Ring Shape:")
+
+    local ringTextureDropdown = CreateFrame("Frame", nil, panel, "UIDropDownMenuTemplate")
+    ringTextureDropdown:SetPoint("LEFT", ringTextureLabel, "RIGHT", 5, 0)
+    ringTextureDropdown:SetSize(150, 25)
+
+    local currentTexture = GetSpecDB().ringTexture or "ring.tga" -- tracks the current selection
+
+    local function OnRingTextureSelected(self, opt)
+        currentTexture = opt.file                    -- update currentTexture
+        GetSpecDB().ringTexture = opt.file
+        SaveSpecSettings()
+        UpdateRingTexture(opt.file)
+
+        UIDropDownMenu_SetSelectedValue(ringTextureDropdown, opt.file)
+        UIDropDownMenu_SetText(ringTextureDropdown, opt.name)
+    end
+
+    UIDropDownMenu_Initialize(ringTextureDropdown, function(self, level, menuList)
+        for _, opt in ipairs(outerRingOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = opt.name
+            info.arg1 = opt
+            info.func = OnRingTextureSelected
+            info.checked = (currentTexture == opt.file)  -- now references the updated currentTexture
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
+
+    -- Set initial display after initialization
+    UIDropDownMenu_SetSelectedValue(ringTextureDropdown, currentTexture)
+    for _, opt in ipairs(outerRingOptions) do
+        if opt.file == currentTexture then
+            UIDropDownMenu_SetText(ringTextureDropdown, opt.name)
+            break
+        end
+    end
+
     -- Cast Color Picker
     local castColor = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
@@ -545,7 +609,6 @@ local function CreateOptionsPanel()
     end)
 
     -- Cast Style Dropdown
-    local castStyle = specDB.castStyle or "ring"
     local styleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     styleLabel:SetPoint("LEFT", castColorButton, "RIGHT", 100, 0)
     styleLabel:SetText("Cast Ring Style:")
@@ -553,31 +616,70 @@ local function CreateOptionsPanel()
     local styleDropdown = CreateFrame("Frame", nil, panel, "UIDropDownMenuTemplate")
     styleDropdown:SetPoint("LEFT", styleLabel, "RIGHT", 5, 0)
     styleDropdown:SetSize(150, 25)
+    local castStyleOptions = {
+        { text = "Ring", value = "ring" },
+        { text = "Fill", value = "fill" },
+    }
 
-    local function OnStyleSelected(self, arg1, arg2, checked)
-        castStyle = arg1
-        specDB.castStyle = castStyle
+    local currentCastStyle = GetSpecDB().castStyle or "ring"
+
+    local function OnCastStyleSelected(self, styleValue)
+        currentCastStyle = styleValue
+        GetSpecDB().castStyle = styleValue
         SaveSpecSettings()
-        UpdateCastStyle(castStyle)
-        UIDropDownMenu_SetText(styleDropdown, castStyle == "ring" and "Ring" or "Wedge")
+        UpdateCastStyle(styleValue)
+
+        UIDropDownMenu_SetSelectedValue(styleDropdown, styleValue)
+        UIDropDownMenu_SetText(styleDropdown, (styleValue == "ring" and "Ring" or "Fill"))
     end
 
-    UIDropDownMenu_SetInitializeFunction(styleDropdown, function(self)
-        local info = UIDropDownMenu_CreateInfo()
-        info.func = OnStyleSelected
-
-        info.text = "Ring"
-        info.arg1 = "ring"
-        info.checked = (castStyle == "ring")
-        UIDropDownMenu_AddButton(info)
-
-        info.text = "Wedge"
-        info.arg1 = "wedge"
-        info.checked = (castStyle == "wedge")
-        UIDropDownMenu_AddButton(info)
+    UIDropDownMenu_Initialize(styleDropdown, function(self)
+        for _, opt in ipairs(castStyleOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = opt.text
+            info.arg1 = opt.value
+            info.func = OnCastStyleSelected
+            info.checked = (currentCastStyle == opt.value)
+            UIDropDownMenu_AddButton(info)
+        end
     end)
-    UIDropDownMenu_SetText(styleDropdown, castStyle == "ring" and "Ring" or "Wedge")
 
+    UIDropDownMenu_SetSelectedValue(styleDropdown, currentCastStyle)
+    for _, opt in ipairs(castStyleOptions) do
+        if opt.value == currentCastStyle then
+            UIDropDownMenu_SetText(styleDropdown, opt.text)
+            break
+        end
+    end
+--[[
+    local castStyleOptions = {
+        { text = "Ring", value = "ring" },
+        { text = "Fill", value = "fill" },
+    }
+
+    local function OnCastStyleSelected(self, styleValue)
+        castStyle = styleValue
+        GetSpecDB().castStyle = castStyle
+        SaveSpecSettings()
+        UpdateCastStyle(castStyle)
+        UIDropDownMenu_SetText(styleDropdown, (castStyle == "ring" and "Ring" or "Fill"))
+    end
+
+    UIDropDownMenu_Initialize(styleDropdown, function(self)
+        local currentStyle = GetSpecDB().castStyle or "ring"
+        for _, opt in ipairs(castStyleOptions) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = opt.text
+            info.arg1 = opt.value
+            info.func = OnCastStyleSelected
+            info.checked = (currentStyle == opt.value)
+            UIDropDownMenu_AddButton(info)
+            if info.checked then
+                UIDropDownMenu_SetText(styleDropdown, opt.text)
+            end
+        end
+    end)
+]]
     -- Reset Cursor Ring to Class Color Button
     local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetButton:SetPoint("TOPLEFT", castColorLabel, "BOTTOMLEFT", 0, -40)
@@ -786,6 +888,7 @@ addon:SetScript("OnEvent", function(self,event,...)
     if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_SPECIALIZATION_CHANGED" then
         LoadSpecSettings()
         CreateCursorRing()
+        UpdateCastStyle(castStyle)
         CreateOptionsPanel()
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
@@ -793,13 +896,24 @@ addon:SetScript("OnEvent", function(self,event,...)
         local unit = ...
         if unit=="player" then casting = true end
     elseif event=="UNIT_SPELLCAST_STOP" or event=="UNIT_SPELLCAST_CHANNEL_STOP" then
-        local unit = ...
-        if unit=="player" then casting = false end
+    local unit = ...
+    if unit=="player" then
+        casting = false
+        -- Immediately hide all cast segments
+        if castSegments then
+            for i = 1, NUM_CAST_SEGMENTS do
+                if castSegments[i] then
+                    castSegments[i]:SetVertexColor(1,1,1,0)
+                end
+            end
+        end
+    end
     elseif event == "ADDON_LOADED" then
         local addonName = ...
         if addonName == "CursorRing" then
             LoadSpecSettings()
             CreateCursorRing()
+            UpdateCastStyle(castStyle)
             CreateOptionsPanel()
             UpdateRingVisibility()
             UpdateMouseTrailVisibility()
