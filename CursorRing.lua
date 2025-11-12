@@ -1,8 +1,9 @@
 -- CursorRing.lua
 -- Local variables
-local ring, ringEnabled, ringSize, ringColor, ringTexture, castColor, showOutOfCombat
-local casting, castStyle, mouseTrail, mouseTrailActive, sparkleTrail, trailFadeTime, trailColor, sparkleColor
-local castSegments, castFill
+local showOutOfCombat, cursorRingOptionsPanel
+local ring, ringEnabled, ringSize, ringColor, ringTexture, ringColorTexture, ringColorButton
+local casting, castColor, castStyle, castSegments, castFill, currentCastStyle, castColorTexture, castColorButton
+local mouseTrail, mouseTrailActive, trailFadeTime, trailColor, trailColorButton, sparkleColor, sparkleTrail, sparkleColorButton, sparkleColorTexture, sparkleMultiplier
 local panelLoaded = false
 local panelFrame = nil
 local trailGroup = {}
@@ -204,7 +205,7 @@ local function UpdateCastColor(r, g, b)
     SaveSpecSettings()
 end
 
--- Update Caast Segments for the selected shape
+-- Update Cast Segments for the selected shape
 local function UpdateCastSegmentsForShape(shape)
     castStyle = shape  -- "ring" or "fill"
     UpdateCastStyle(castStyle)
@@ -457,15 +458,17 @@ local function CreateOptionsPanel()
 
     local specDB = GetSpecDB()
 
-    local panel = CreateFrame("Frame", "CursorRingOptionsPanel", UIParent)
+    local panel = CreateFrame("Frame", "cursorRingOptionsPanel", UIParent)
     panel.name = "CursorRing"
+
+    cursorRingOptionsPanel = panel
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("CursorRing Settings")
 
     -- Show Out of Combat Checkbox
-    local showOutOfCombat = specDB.showOutOfCombat or false
+    showOutOfCombat = specDB.showOutOfCombat or false
     local outOfCombatCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     outOfCombatCheckbox:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -20)
     outOfCombatCheckbox:SetChecked(showOutOfCombat)
@@ -481,13 +484,14 @@ local function CreateOptionsPanel()
     outOfCombatLabel:SetText("Show Ring and Mouse Trail outside of combat/instances")
 
     -- Enable Ring Checkbox
-    local ringEnabled = specDB.ringEnabled
+    ringEnabled = specDB.ringEnabled
     if ringEnabled == nil then ringEnabled = true end
     local ringToggle = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     ringToggle:SetPoint("TOPLEFT", outOfCombatCheckbox, "BOTTOMLEFT", 0, -8)
     ringToggle:SetChecked(ringEnabled)
     ringToggle:SetScript("OnClick", function(self)
         ringEnabled = self:GetChecked()
+        _G.ringEnabled = ringEnabled
         specDB.ringEnabled = ringEnabled
         SaveSpecSettings()
         UpdateRingVisibility()
@@ -498,7 +502,7 @@ local function CreateOptionsPanel()
     ringToggleLabel:SetText("Enable Cursor Ring")
 
     -- Ring Size Slider   
-    local ringSize = specDB.ringSize or 64
+    ringSize = specDB.ringSize or 64
     local slider = CreateFrame("Slider", "CursorRingSizeSlider", panel, "OptionsSliderTemplate")
     slider:SetPoint("TOPLEFT", ringToggle, "BOTTOMLEFT", 0, -30)
     slider:SetMinMaxValues(32, 256)
@@ -516,19 +520,19 @@ local function CreateOptionsPanel()
     end)
 
     -- Ring Color Picker
-    local ringColor = specDB.ringColor or { r = 1, g = 1, b = 1 }
+    ringColor = specDB.ringColor or { r = 1, g = 1, b = 1 }
     local ringColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     ringColorLabel:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -40)
     ringColorLabel:SetText("Ring Color:")
 
-    local ringColorButton = CreateFrame("Button", nil, panel)
-    ringColorButton:SetPoint("LEFT", ringColorLabel, "RIGHT", 40, 0)
+    ringColorButton = CreateFrame("Button", nil, panel)
+    ringColorButton:SetPoint("LEFT", ringColorLabel, "LEFT", 110, 0)
     ringColorButton:SetSize(16, 16)
 
     -- Apply inset style to color button
     StyleColorButtonInset(ringColorButton)
 
-    local ringColorTexture = ringColorButton:CreateTexture(nil, "ARTWORK")
+    ringColorTexture = ringColorButton:CreateTexture(nil, "ARTWORK")
     ringColorTexture:SetAllPoints()
     ringColorTexture:SetColorTexture(ringColor.r, ringColor.g, ringColor.b, 1)
 
@@ -575,24 +579,26 @@ local function CreateOptionsPanel()
     end)
 
  -- Cursor Ring Shape / Texture Dropdown
-    local ringTextureLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    ringTextureLabel:SetPoint("LEFT", ringColorButton, "RIGHT", 120, 0)
-    ringTextureLabel:SetText("Ring Shape:")
-
     local ringTextureDropdown = CreateFrame("Frame", nil, panel, "UIDropDownMenuTemplate")
-    ringTextureDropdown:SetPoint("LEFT", ringTextureLabel, "RIGHT", 5, 0)
+    ringTextureDropdown:SetPoint("LEFT", ringColorLabel, "LEFT", 380, 0)
     ringTextureDropdown:SetSize(150, 25)
+ 
+    local ringTextureLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    ringTextureLabel:SetPoint("LEFT", ringColorLabel, "LEFT", 280, 0)
+    ringTextureLabel:SetText("Ring Shape:")
 
     local currentTexture = GetSpecDB().ringTexture or "ring.tga" -- tracks the current selection
 
     local function OnRingTextureSelected(self, opt)
         currentTexture = opt.file                    -- update currentTexture
+        ringTexture = opt.file                       -- update global ringTexture
         GetSpecDB().ringTexture = opt.file
         SaveSpecSettings()
         UpdateRingTexture(opt.file)
 
         UIDropDownMenu_SetSelectedValue(ringTextureDropdown, opt.file)
         UIDropDownMenu_SetText(ringTextureDropdown, opt.name)
+        -- print("CursorRing: Dropdown updated ring texture to " .. ringTexture)
     end
 
     UIDropDownMenu_Initialize(ringTextureDropdown, function(self, level, menuList)
@@ -616,19 +622,19 @@ local function CreateOptionsPanel()
     end
 
     -- Cast Color Picker
-    local castColor = specDB.castColor or { r = 1, g = 1, b = 1 }
+    castColor = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     castColorLabel:SetPoint("TOPLEFT", ringColorLabel, "BOTTOMLEFT", 0, -40)
     castColorLabel:SetText("Cast Effect Color:")
 
-    local castColorButton = CreateFrame("Button", nil, panel)
-    castColorButton:SetPoint("LEFT", castColorLabel, "RIGHT", 10, 0)
+    castColorButton = CreateFrame("Button", nil, panel)
+    castColorButton:SetPoint("LEFT", castColorLabel, "LEFT", 110, 0)
     castColorButton:SetSize(16, 16)
 
     -- Apply inset style to color button
     StyleColorButtonInset(castColorButton)
 
-    local castColorTexture = castColorButton:CreateTexture(nil, "ARTWORK")
+    castColorTexture = castColorButton:CreateTexture(nil, "ARTWORK")
     castColorTexture:SetAllPoints()
     castColorTexture:SetColorTexture(castColor.r, castColor.g, castColor.b, 1)
 
@@ -675,19 +681,20 @@ local function CreateOptionsPanel()
     end)
 
     -- Cast Style Dropdown
-    local styleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    styleLabel:SetPoint("LEFT", castColorButton, "RIGHT", 100, 0)
-    styleLabel:SetText("Cast Ring Style:")
-
     local styleDropdown = CreateFrame("Frame", nil, panel, "UIDropDownMenuTemplate")
-    styleDropdown:SetPoint("LEFT", styleLabel, "RIGHT", 5, 0)
+    styleDropdown:SetPoint("LEFT", castColorLabel, "LEFT", 380, 0)
     styleDropdown:SetSize(150, 25)
+    
+    local styleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    styleLabel:SetPoint("LEFT", castColorLabel, "LEFT", 280, 0)
+    styleLabel:SetText("Cast Ring Style:")
+    
     local castStyleOptions = {
         { text = "Ring", value = "ring" },
         { text = "Fill", value = "fill" },
     }
 
-    local currentCastStyle = GetSpecDB().castStyle or "ring"
+    currentCastStyle = GetSpecDB().castStyle or "ring"
 
     local function OnCastStyleSelected(self, styleValue)
         currentCastStyle = styleValue
@@ -717,35 +724,7 @@ local function CreateOptionsPanel()
             break
         end
     end
---[[
-    local castStyleOptions = {
-        { text = "Ring", value = "ring" },
-        { text = "Fill", value = "fill" },
-    }
 
-    local function OnCastStyleSelected(self, styleValue)
-        castStyle = styleValue
-        GetSpecDB().castStyle = castStyle
-        SaveSpecSettings()
-        UpdateCastStyle(castStyle)
-        UIDropDownMenu_SetText(styleDropdown, (castStyle == "ring" and "Ring" or "Fill"))
-    end
-
-    UIDropDownMenu_Initialize(styleDropdown, function(self)
-        local currentStyle = GetSpecDB().castStyle or "ring"
-        for _, opt in ipairs(castStyleOptions) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = opt.text
-            info.arg1 = opt.value
-            info.func = OnCastStyleSelected
-            info.checked = (currentStyle == opt.value)
-            UIDropDownMenu_AddButton(info)
-            if info.checked then
-                UIDropDownMenu_SetText(styleDropdown, opt.text)
-            end
-        end
-    end)
-]]
     -- Reset Cursor Ring to Class Color Button
     local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetButton:SetPoint("TOPLEFT", castColorLabel, "BOTTOMLEFT", 0, -40)
@@ -762,7 +741,7 @@ local function CreateOptionsPanel()
     end)
 
     -- Mouse Trail Checkbox
-    local mouseTrail = specDB.mouseTrail or false
+    mouseTrail = specDB.mouseTrail or false
     local mouseTrailCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
     mouseTrailCheckbox:SetPoint("TOPLEFT", resetButton, "BOTTOMLEFT", 0, -20)
     mouseTrailCheckbox:SetChecked(mouseTrail)
@@ -780,7 +759,7 @@ local function CreateOptionsPanel()
     -- Sparkle Trail Checkbox
     sparkleTrail = specDB.sparkleTrail or false
     local sparkleCheckbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    sparkleCheckbox:SetPoint("LEFT", mouseTrailLabel, "RIGHT", 100, 0)
+    sparkleCheckbox:SetPoint("LEFT", mouseTrailCheckbox, "LEFT", 280, 0)
     sparkleCheckbox:SetChecked(sparkleTrail)
     sparkleCheckbox:SetScript("OnClick", function(self)
         sparkleTrail = self:GetChecked()
@@ -798,7 +777,7 @@ local function CreateOptionsPanel()
     trailColorLabel:SetPoint("TOPLEFT", mouseTrailCheckbox, "BOTTOMLEFT", 0, -40)
     trailColorLabel:SetText("Mouse Trail Color:")
 
-    local trailColorButton = CreateFrame("Button", nil, panel)
+    trailColorButton = CreateFrame("Button", nil, panel)
     trailColorButton:SetPoint("LEFT", trailColorLabel, "RIGHT", 10, 0)
     trailColorButton:SetSize(16, 16)
 
@@ -852,17 +831,17 @@ local function CreateOptionsPanel()
     -- Sparkle Color Picker
     sparkleColor = specDB.sparkleColor or { r = 1, g = 1, b = 1 }
     local sparkleColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sparkleColorLabel:SetPoint("TOPLEFT", sparkleCheckbox, "BOTTOMLEFT", 0, -40)
+    sparkleColorLabel:SetPoint("LEFT", trailColorLabel, "LEFT", 280, 0)
     sparkleColorLabel:SetText("Sparkle Color:")
 
-    local sparkleColorButton = CreateFrame("Button", nil, panel)
+    sparkleColorButton = CreateFrame("Button", nil, panel)
     sparkleColorButton:SetPoint("LEFT", sparkleColorLabel, "RIGHT", 10, 0)
     sparkleColorButton:SetSize(16, 16)
 
     -- Apply inset style to color button
     StyleColorButtonInset(sparkleColorButton)
 
-    local sparkleColorTexture = sparkleColorButton:CreateTexture(nil, "ARTWORK")
+    sparkleColorTexture = sparkleColorButton:CreateTexture(nil, "ARTWORK")
     sparkleColorTexture:SetAllPoints()
     sparkleColorTexture:SetColorTexture(sparkleColor.r, sparkleColor.g, sparkleColor.b, 1)
 
@@ -923,7 +902,7 @@ local function CreateOptionsPanel()
     end)
 
     -- Sparkle Trail Size Slider
-    local sparkleMultiplier = specDB.sparkleMultiplier or 1.0  -- default 1x
+    sparkleMultiplier = specDB.sparkleMultiplier or 1.0  -- default 1x
     local sparkleSlider = CreateFrame("Slider", "CursorRingSparkleSizeSlider", panel, "OptionsSliderTemplate")
     sparkleSlider:SetPoint("TOPLEFT", fadeTimeSlider, "BOTTOMLEFT", 0, -30)
     sparkleSlider:SetMinMaxValues(0.3, 10.0)
@@ -939,21 +918,79 @@ local function CreateOptionsPanel()
         SaveSpecSettings()
     end)
 
-    
-    -- Register Panel (Old & New API)
-    if Settings and Settings.RegisterAddOnCategory then
-        local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-        Settings.RegisterAddOnCategory(category)
-    else
-        local success = pcall(function()
-            local oldAPI = _G["InterfaceOptions_AddCategory"]
-            if oldAPI then
-                oldAPI(panel)
+    -- store panel controls globally for refresh so it updates correctly on spec change
+    cursorRingOptionsPanel.outOfCombatCheckbox = outOfCombatCheckbox
+    cursorRingOptionsPanel.ringToggle = ringToggle
+    cursorRingOptionsPanel.slider = slider
+    cursorRingOptionsPanel.ringColorTexture = ringColorTexture
+    cursorRingOptionsPanel.castColorTexture = castColorTexture
+    cursorRingOptionsPanel.ringTextureDropdown = ringTextureDropdown
+    cursorRingOptionsPanel.styleDropdown = styleDropdown
+    cursorRingOptionsPanel.trailColorTexture = trailColorTexture
+    cursorRingOptionsPanel.sparkleColorTexture = sparkleColorTexture
+
+    -- Register Panel
+    local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
+    Settings.RegisterAddOnCategory(category)
+end
+
+-- Refresh the options panel UI to reflect current spec's settings
+local function UpdateOptionsPanel()
+    if not panelLoaded or not cursorRingOptionsPanel then return end
+    local specDB = GetSpecDB()
+
+    -- Checkboxes
+    if cursorRingOptionsPanel.outOfCombatCheckbox then
+        cursorRingOptionsPanel.outOfCombatCheckbox:SetChecked(specDB.showOutOfCombat or false)
+    end
+    if cursorRingOptionsPanel.ringToggle then
+        cursorRingOptionsPanel.ringToggle:SetChecked(specDB.ringEnabled ~= false)
+    end
+
+    -- Sliders
+    if cursorRingOptionsPanel.slider then
+        cursorRingOptionsPanel.slider:SetValue(specDB.ringSize or 64)
+    end
+    if cursorRingOptionsPanel.trailFadeTimeSlider then
+        cursorRingOptionsPanel.trailFadeTimeSlider:SetValue(specDB.trailFadeTime or 1.0)
+    end
+    if cursorRingOptionsPanel.sparkleSizeSlider then
+        cursorRingOptionsPanel.sparkleSizeSlider:SetValue(specDB.sparkleMultiplier or 1.0)
+    end
+
+    -- Color buttons
+    if cursorRingOptionsPanel.ringColorTexture then
+        local c = specDB.ringColor or { r = 1, g = 1, b = 1 }
+        cursorRingOptionsPanel.ringColorTexture:SetColorTexture(c.r, c.g, c.b, 1)
+    end
+    if cursorRingOptionsPanel.castColorTexture then
+        local c = specDB.castColor or { r = 1, g = 1, b = 1 }
+        cursorRingOptionsPanel.castColorTexture:SetColorTexture(c.r, c.g, c.b, 1)
+    end
+    if cursorRingOptionsPanel.trailColorTexture then
+        local c = specDB.trailColor or { r = 1, g = 1, b = 1 }
+        cursorRingOptionsPanel.trailColorTexture:SetColorTexture(c.r, c.g, c.b, 1)
+    end
+    if cursorRingOptionsPanel.sparkleColorTexture then
+        local c = specDB.sparkleColor or { r = 1, g = 1, b = 1 }
+        cursorRingOptionsPanel.sparkleColorTexture:SetColorTexture(c.r, c.g, c.b, 1)
+    end
+
+    -- Dropdowns
+    if cursorRingOptionsPanel.ringTextureDropdown then
+        local tex = specDB.ringTexture or "ring.tga"
+        UIDropDownMenu_SetSelectedValue(cursorRingOptionsPanel.ringTextureDropdown, tex)
+        for _, opt in ipairs(outerRingOptions) do
+            if opt.file == tex then
+                UIDropDownMenu_SetText(cursorRingOptionsPanel.ringTextureDropdown, opt.name)
+                break
             end
-        end)
-        if not success then
-            print("CursorRing: Could not register options panel (unsupported client version).")
         end
+    end
+    if cursorRingOptionsPanel.styleDropdown then
+        local style = specDB.castStyle or "ring"
+        UIDropDownMenu_SetSelectedValue(cursorRingOptionsPanel.styleDropdown, style)
+        UIDropDownMenu_SetText(cursorRingOptionsPanel.styleDropdown, (style == "fill" and "Fill" or "Ring"))
     end
 end
 
@@ -974,10 +1011,12 @@ addon:SetScript("OnEvent", function(self,event,...)
         CreateCursorRing()
         UpdateCastStyle(castStyle)
         CreateOptionsPanel()
+        UpdateOptionsPanel()
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
         if ring then
             ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ringTexture)
+            -- print("CursorRing: Updated ring texture to " .. ringTexture)
         end
         if castFill then
             castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture))
@@ -1005,11 +1044,13 @@ addon:SetScript("OnEvent", function(self,event,...)
             CreateCursorRing()
             UpdateCastStyle(castStyle)
             CreateOptionsPanel()
+            UpdateOptionsPanel()
             UpdateRingVisibility()
             UpdateMouseTrailVisibility()
         end
    -- Only initialize panel frame, don't register it yet
     CreateOptionsPanel()
+    UpdateOptionsPanel()
     elseif event == "PLAYER_LOGIN" then
         if panelFrame and Settings and Settings.RegisterAddOnCategory and Settings.RegisterCanvasLayoutCategory then
             local ok, err = pcall(function()
