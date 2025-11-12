@@ -2,7 +2,7 @@
 -- Local variables
 local ring, ringEnabled, ringSize, ringColor, ringTexture, castColor, showOutOfCombat
 local casting, castStyle, mouseTrail, mouseTrailActive, sparkleTrail, trailFadeTime, trailColor, sparkleColor
-local castSegments, leftHalf, rightHalf
+local castSegments, castFill
 local panelLoaded = false
 local panelFrame = nil
 local trailGroup = {}
@@ -14,7 +14,7 @@ local NUM_CAST_SEGMENTS = 240
 local outerRingOptions = {
     { name = "Ring", file = "ring.tga", style = "ring" },
     { name = "Thin Ring",   file = "thin_ring.tga", style = "ring" },
-    -- { name = "Star",    file = "star.tga", style = "ring" },
+    { name = "Star",    file = "star.tga", style = "ring" },
     -- { name = "Heart",   file = "heart.tga", style = "ring" },
 }
 
@@ -25,6 +25,12 @@ CursorRingDB = CursorRingDB or {}
 local function Clamp(val, min, max)
     if val < min then return min elseif val > max then return max end
     return val
+end
+
+-- Build the fill texture for the given donut... er ring...
+local function GetFillTextureForRing(ringFile)
+    local baseName = ringFile:gsub("%.tga$", "")
+    return baseName .. "_fill.tga"
 end
 
 -- Get current spec key
@@ -119,32 +125,6 @@ local function UpdateRingSize(size)
     end
 end
 
--- Update Ring Texture/Shape
-local function UpdateRingTexture(textureFile)
-    if ring then
-        ring:SetTexture("Interface\\AddOns\\CursorRing\\"..textureFile)
-    end
-    GetSpecDB().ringTexture = textureFile
-    SaveSpecSettings()
-end
-
--- Spec specific Ring Color update
-local function UpdateRingColor(r, g, b)
-    ringColor.r, ringColor.g, ringColor.b = r, g, b
-    GetSpecDB().ringColor = ringColor
-    SaveSpecSettings()
-    if ring then
-        ring:SetVertexColor(r, g, b, 1)
-    end
-end
-
--- Spec specific Cast Color update
-local function UpdateCastColor(r, g, b)
-    castColor.r, castColor.g, castColor.b = r, g, b
-    GetSpecDB().castColor = castColor
-    SaveSpecSettings()
-end
-
 -- Update Cast Style (fill or ring. Ring is better, but some people want fill)
 local function UpdateCastStyle(style)
     castStyle = style
@@ -168,13 +148,60 @@ local function UpdateCastStyle(style)
     -- Create segments
     for i=1,NUM_CAST_SEGMENTS do
         local segment = f:CreateTexture(nil, "BACKGROUND")
-        local texturePath = (castStyle == "fill") and "Interface\\AddOns\\CursorRing\\cast_wedge.tga" or "Interface\\AddOns\\CursorRing\\cast_segment.tga"
+        local texturePath
+        if castStyle == "fill" then
+            texturePath = "Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)
+        else
+            texturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
+        end
         segment:SetTexture(texturePath, "CLAMP")
         segment:SetAllPoints()
         segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
         segment:SetVertexColor(1, 1, 1, 0)
         castSegments[i] = segment
     end
+    if castStyle == "fill" and castFill then
+        castFill:Show()
+        local specDB = GetSpecDB()
+        local fillColor = specDB.castColor or { r = 1, g = 1, b = 1 }
+        castFill:SetVertexColor(fillColor.r, fillColor.g, fillColor.b, 1)
+    end
+
+end
+
+-- Update Ring Texture/Shape
+local function UpdateRingTexture(textureFile)
+    if ring then
+        ring:SetTexture("Interface\\AddOns\\CursorRing\\"..textureFile)
+    end
+    if castFill then
+        castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(textureFile))
+    end
+    GetSpecDB().ringTexture = textureFile
+    SaveSpecSettings()
+
+    -- Refresh cast segments if using fill style
+    if castStyle == "fill" then
+        UpdateCastStyle(castStyle)
+    end
+end
+
+
+-- Spec specific Ring Color update
+local function UpdateRingColor(r, g, b)
+    ringColor.r, ringColor.g, ringColor.b = r, g, b
+    GetSpecDB().ringColor = ringColor
+    SaveSpecSettings()
+    if ring then
+        ring:SetVertexColor(r, g, b, 1)
+    end
+end
+
+-- Spec specific Cast Color update
+local function UpdateCastColor(r, g, b)
+    castColor.r, castColor.g, castColor.b = r, g, b
+    GetSpecDB().castColor = castColor
+    SaveSpecSettings()
 end
 
 -- Update Caast Segments for the selected shape
@@ -234,7 +261,7 @@ local function CreateCursorRing()
     f:SetFrameStrata("TOOLTIP")
 
     -- Outer ring
-    ring = f:CreateTexture(nil, "ARTWORK")
+    ring = f:CreateTexture(nil, "BORDER")
     ring:SetTexture("Interface\\AddOns\\CursorRing\\"..(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
     -- ring:SetTexture("Interface\\AddOns\\CursorRing\\ring.tga", "CLAMP")
     ring:SetAllPoints()
@@ -243,14 +270,30 @@ local function CreateCursorRing()
     -- Cast segments
     castSegments = {}
     for i = 1, NUM_CAST_SEGMENTS do
-        local segment = f:CreateTexture(nil, "BACKGROUND")
-        local texturePath = (castStyle == "fill") and "cast_wedge.tga" or "cast_segment.tga"
+        local segment = f:CreateTexture(nil, "ARTWORK")
+        local texturePath
+        if castStyle == "fill" then
+            texturePath = "Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)
+        else
+            texturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
+        end
         segment:SetTexture(texturePath, "CLAMP")
         segment:SetAllPoints()
         segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
         segment:SetVertexColor(1, 1, 1, 0)
         castSegments[i] = segment
     end
+
+    -- Cast Fill (for scaling animation)
+    castFill = f:CreateTexture(nil, "OVERLAY")
+    castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)) -- ensure *_fill.tga
+    local specDB = GetSpecDB()
+    local fillColor = specDB.castColor or { r = 1, g = 1, b = 1 }
+    castFill:SetVertexColor(fillColor.r, fillColor.g, fillColor.b, 1)
+    castFill:SetAlpha(0)
+    castFill:SetSize(ringSize*0.01, ringSize*0.01)
+    castFill:SetPoint("CENTER", f, "CENTER")
+
 
     UpdateCastStyle(castStyle)
 
@@ -305,13 +348,32 @@ local function CreateCursorRing()
                     point.tex:SetSize(ringSize*0.4*fade, ringSize*0.4*fade)
                     point.tex:Show()
                     if sparkleTrail then
-                        if not point.sparkle then point.sparkle = CreateSparkleTexture(self) end
-                        local dx = (math.random()-0.5)*24
-                        local dy = (math.random()-0.5)*24
-                        point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x+dx, point.y+dy)
-                        local sc = sparkleColor or { r=1, g=1, b=1 }
+                        if not point.sparkle then 
+                            point.sparkle = CreateSparkleTexture(self) 
+                            point.sparkle:SetBlendMode("ADD")  -- ensures smooth additive glow
+                        end
+
+                        -- Circular distribution
+                        local radius = specDB.ringSize * 0.3
+                        local angle = math.random() * 2 * math.pi
+                        local distance = (math.random() ^ 1.4) * radius -- Adjust center bias ( > 1 = more center bias)
+                        local dx = math.cos(angle) * distance
+                        local dy = math.sin(angle) * distance
+
+                        point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
+
+                        local sc = sparkleColor or { r = 1, g = 1, b = 1 }
                         point.sparkle:SetVertexColor(sc.r, sc.g, sc.b, 1)
-                        point.sparkle:SetAlpha(Clamp(fade*1.7,0,1))
+
+                        -- Fade slowly and smoothly
+                        local fadeSpeed = 0.1 -- lower = slower fade
+                        local fadeAdj = Clamp(fade / fadeSpeed, 0, 1) -- keeps alpha reaching 1
+                        point.sparkle:SetAlpha(fadeAdj)
+
+                        -- Randomized size for softness / natural variance
+                        local baseSize = radius * fade * 0.5 * (specDB.sparkleMultiplier or 1.0)
+                        local variance = math.random() * baseSize * 0.5
+                        point.sparkle:SetSize(baseSize + variance, baseSize + variance)
                         point.sparkle:Show()
                     end
                 end
@@ -319,45 +381,49 @@ local function CreateCursorRing()
         end
 
         -- Casting progress
--- Casting progress
         if casting then
             local now = GetTime()
             local progress = 0
             local castName, _, _, castStartTime, castEndTime = UnitCastingInfo("player")
             local channelName, _, _, channelStartTime, channelEndTime = UnitChannelInfo("player")
-            
+
             if castName then
                 progress = (now - (castStartTime/1000)) / ((castEndTime - castStartTime)/1000)
             elseif channelName then
                 progress = 1 - ((now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000))
             else
                 casting = false
-                -- Hide segments immediately if no cast info
-                if castSegments then
-                    for i = 1, NUM_CAST_SEGMENTS do
-                        if castSegments[i] then
-                            castSegments[i]:SetVertexColor(1,1,1,0)
-                        end
-                    end
-                end
-                return
             end
 
             progress = Clamp(progress, 0, 1)
-            local segmentsToShow = math.floor(progress * NUM_CAST_SEGMENTS)
-            if castSegments and castSegments[1]:GetTexture() then
-                for i = 1, NUM_CAST_SEGMENTS do
-                    if i <= segmentsToShow then
-                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-                    else
-                        castSegments[i]:SetVertexColor(1,1,1,0)
+
+            -- Fill style
+            if castStyle == "fill" and castFill then
+                castFill:SetAlpha(progress > 0 and 1 or 0)
+                local size = ringSize * math.max(progress, 0.01)
+                castFill:SetSize(size, size)
+                castFill:SetPoint("CENTER", f, "CENTER")  -- Ensure it stays centered
+                castFill:SetAlpha(progress > 0 and 1 or 0)
+            end
+
+            -- Ring style (segment reveal)
+            if castStyle == "ring" and castSegments then
+                local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
+                for i=1,NUM_CAST_SEGMENTS do
+                    if castSegments[i] then
+                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, i <= numLit and 1 or 0)
                     end
                 end
             end
         else
-            -- Ensure segments are hidden if not casting
+            -- Not casting: hide fill and segments
+            if castFill then
+                castFill:SetAlpha(0)
+                castFill:SetSize(ringSize*0.01, ringSize*0.01)
+                castFill:SetPoint("CENTER", ring:GetParent(), "CENTER")
+            end
             if castSegments then
-                for i = 1, NUM_CAST_SEGMENTS do
+                for i=1,NUM_CAST_SEGMENTS do
                     if castSegments[i] then
                         castSegments[i]:SetVertexColor(1,1,1,0)
                     end
@@ -553,7 +619,7 @@ local function CreateOptionsPanel()
     local castColor = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     castColorLabel:SetPoint("TOPLEFT", ringColorLabel, "BOTTOMLEFT", 0, -40)
-    castColorLabel:SetText("Cast Ring Color:")
+    castColorLabel:SetText("Cast Effect Color:")
 
     local castColorButton = CreateFrame("Button", nil, panel)
     castColorButton:SetPoint("LEFT", castColorLabel, "RIGHT", 10, 0)
@@ -856,6 +922,24 @@ local function CreateOptionsPanel()
         SaveSpecSettings()
     end)
 
+    -- Sparkle Trail Size Slider
+    local sparkleMultiplier = specDB.sparkleMultiplier or 1.0  -- default 1x
+    local sparkleSlider = CreateFrame("Slider", "CursorRingSparkleSizeSlider", panel, "OptionsSliderTemplate")
+    sparkleSlider:SetPoint("TOPLEFT", fadeTimeSlider, "BOTTOMLEFT", 0, -30)
+    sparkleSlider:SetMinMaxValues(0.3, 10.0)
+    sparkleSlider:SetValueStep(0.1)
+    sparkleSlider:SetValue(sparkleMultiplier)
+    sparkleSlider.Low:SetText("Small")
+    sparkleSlider.High:SetText("Huge")
+    _G[sparkleSlider:GetName() .. "Text"]:SetText("Sparkle Size Multiplier")
+
+    sparkleSlider:SetScript("OnValueChanged", function(self, value)
+        sparkleMultiplier = value
+        specDB.sparkleMultiplier = sparkleMultiplier
+        SaveSpecSettings()
+    end)
+
+    
     -- Register Panel (Old & New API)
     if Settings and Settings.RegisterAddOnCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
