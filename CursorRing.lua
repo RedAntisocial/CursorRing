@@ -976,6 +976,12 @@ addon:SetScript("OnEvent", function(self,event,...)
         CreateOptionsPanel()
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
+        if ring then
+            ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ringTexture)
+        end
+        if castFill then
+            castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture))
+        end        
     elseif event=="UNIT_SPELLCAST_START" or event=="UNIT_SPELLCAST_CHANNEL_START" then
         local unit = ...
         if unit=="player" then casting = true end
