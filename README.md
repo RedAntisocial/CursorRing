@@ -15,19 +15,20 @@
 
 - **Class-colored cursor ring**
   - Matches your character’s class color or a custom RGB color.
+  - Customizable shape between Ring, Thin Ring, and Star (more coming soon)
 - **Cast progress display**
-  - Real-time radial fill during casts and channels.
-  - Choose segmented or legacy half-circle animation.
+  - Real-time radial cast bar or fill during casts and channels.
+  - Customizable color
 - **Visibility control**
   - Only show in combat/instances, or always show.
 - **Mouse Trail & Sparkles**
   - Optional glowing trail and sparkle effect behind the cursor.
   - Customizable trail/sparkle color and fade length.
+  - Customizable sparkle size
 - **Full in-game configuration**
   - Accessible via *Options → AddOns → CursorRing* or the modern *Settings* menu.
-  - Includes: ring size slider, ring/cast/trail/sparkle color pickers, toggles for trail and combat visibility, “reset to class color”, and more.
 - **Persistent, per-spec settings**
-  - All preferences are saved character spec-wise in `CursorRingDB`.
+  - Persistent settings stored in character-specific SavedVariables
 
 ---
 
@@ -37,13 +38,15 @@ The addon expects the following files in
 `Interface\AddOns\CursorRing\`:
 
 - `ring.tga` — main cursor ring
-- `cast_segment.tga` — wedge segment for cast/channel progress
-- `cast_wedge.tga`
+- `ring_fill.tga` - fill texture for the main cursor ring
+- `thin_ring.tga` — thin option for the main cursor ring
+- `thin_ring_fill.tga` — fill texture for the thin option for the main cursor ring
+- `star.tga` — star option for the main cursor ring
+- `star_fill.tga` — fill texture for the star option for the main cursor ring
+- `cast_segment.tga` — segment for cast/channel progress ring
+- `cast_wedge.tga` - wedge for cast/channel progress wedge option
 - `sparkle.tga`
 - `trail_glow.tga`
-- `innerring_left.tga` and `innerring_right.tga` — legacy fallback halves
-
-If modern segment textures are missing, the addon falls back to half-circle animation (not recommended for newer WoW clients).
 
 ---
 
