@@ -111,7 +111,7 @@ Contributions and feature requests are welcome!
 - Submit issues or pull requests via GitHub.
 - Follow Blizzard’s Lua API standards.
 - Test changes with `/reload` and enable script errors using `/console scriptErrors 1`.
-- Ensure compatibility with *Retail (The War Within)*.
+- Ensure compatibility with *Retail (The War Within and Midnight)*.
 
 ---
 
