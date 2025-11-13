@@ -24,7 +24,7 @@
   - Optional glowing trail and sparkle effect behind the cursor.
   - Customizable trail/sparkle color and fade length.
 - **Full in-game configuration**
-  - Accessible via *Interface → AddOns → CursorRing* or the modern *Settings* menu.
+  - Accessible via *Options → AddOns → CursorRing* or the modern *Settings* menu.
   - Includes: ring size slider, ring/cast/trail/sparkle color pickers, toggles for trail and combat visibility, “reset to class color”, and more.
 - **Persistent, per-spec settings**
   - All preferences are saved character spec-wise in `CursorRingDB`.
