@@ -260,11 +260,14 @@ local function CreateCursorRing()
     local f = CreateFrame("Frame", nil, UIParent)
     f:SetSize(ringSize, ringSize)
     f:SetFrameStrata("TOOLTIP")
+    f:SetIgnoreParentScale(true)
+    f:EnableMouse(false)
+    f:SetClampedToScreen(true)
+    f:SetClampRectInsets(0,0,0,0)
 
     -- Outer ring
     ring = f:CreateTexture(nil, "BORDER")
     ring:SetTexture("Interface\\AddOns\\CursorRing\\"..(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
-    -- ring:SetTexture("Interface\\AddOns\\CursorRing\\ring.tga", "CLAMP")
     ring:SetAllPoints()
     ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
 
@@ -295,7 +298,6 @@ local function CreateCursorRing()
     castFill:SetSize(ringSize*0.01, ringSize*0.01)
     castFill:SetPoint("CENTER", f, "CENTER")
 
-
     UpdateCastStyle(castStyle)
 
     -- Mouse Trail
@@ -317,16 +319,20 @@ local function CreateCursorRing()
         return tex
     end
 
-    -- OnUpdate
-    f:SetScript("OnUpdate", function(self)
+    -- OnUpdate - cursor position only
+    f:SetScript("OnUpdate", function(self, elapsed)
         local x, y = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
-        self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x/scale, y/scale)
+        x = x
+        y = y
+		
+        self:ClearAllPoints()
+        self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
 
         -- Mouse Trail
         if mouseTrailActive then
             local now = GetTime()
-            table.insert(trailGroup, { x=x/scale, y=y/scale, created=now })
+            table.insert(trailGroup, { x=x, y=y, created=now })
             while #trailGroup > MAX_TRAIL_POINTS do
                 local old = table.remove(trailGroup, 1)
                 if old and old.tex then old.tex:Hide() end
@@ -342,6 +348,7 @@ local function CreateCursorRing()
                     table.remove(trailGroup, i)
                 else
                     if not point.tex then point.tex = CreateTrailTexture(self) end
+                    point.tex:ClearAllPoints()
                     point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
                     local rc = trailColor or { r=1, g=1, b=1 }
                     point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade*0.8,0,1))
@@ -361,6 +368,7 @@ local function CreateCursorRing()
                         local dx = math.cos(angle) * distance
                         local dy = math.sin(angle) * distance
 
+                        point.sparkle:ClearAllPoints()
                         point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
 
                         local sc = sparkleColor or { r = 1, g = 1, b = 1 }
@@ -380,54 +388,53 @@ local function CreateCursorRing()
                 end
             end
         end
+    end)
 
-        -- Casting progress
-        if casting then
-            local now = GetTime()
-            local progress = 0
-            local castName, _, _, castStartTime, castEndTime = UnitCastingInfo("player")
-            local channelName, _, _, channelStartTime, channelEndTime = UnitChannelInfo("player")
+    -- Separate ticker for cast progress updates (lower frequency)
+    local castTicker = C_Timer.NewTicker(0.016, function()
+        if not casting then return end
+        
+        local now = GetTime()
+        local progress = 0
+        local castName, _, _, castStartTime, castEndTime = UnitCastingInfo("player")
+        local channelName, _, _, channelStartTime, channelEndTime = UnitChannelInfo("player")
 
-            if castName then
-                progress = (now - (castStartTime/1000)) / ((castEndTime - castStartTime)/1000)
-            elseif channelName then
-                progress = 1 - ((now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000))
-            else
-                casting = false
-            end
-
-            progress = Clamp(progress, 0, 1)
-
-            -- Fill style
-            if castStyle == "fill" and castFill then
-                castFill:SetAlpha(progress > 0 and 1 or 0)
-                local size = ringSize * math.max(progress, 0.01)
-                castFill:SetSize(size, size)
-                castFill:SetPoint("CENTER", f, "CENTER")  -- Ensure it stays centered
-                castFill:SetAlpha(progress > 0 and 1 or 0)
-            end
-
-            -- Ring style (segment reveal)
-            if castStyle == "ring" and castSegments then
-                local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
-                for i=1,NUM_CAST_SEGMENTS do
-                    if castSegments[i] then
-                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, i <= numLit and 1 or 0)
-                    end
-                end
-            end
+        if castName then
+            progress = (now - (castStartTime/1000)) / ((castEndTime - castStartTime)/1000)
+        elseif channelName then
+            progress = 1 - ((now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000))
         else
-            -- Not casting: hide fill and segments
+            casting = false
+            -- Hide all segments when done
             if castFill then
                 castFill:SetAlpha(0)
                 castFill:SetSize(ringSize*0.01, ringSize*0.01)
-                castFill:SetPoint("CENTER", ring:GetParent(), "CENTER")
             end
             if castSegments then
                 for i=1,NUM_CAST_SEGMENTS do
                     if castSegments[i] then
                         castSegments[i]:SetVertexColor(1,1,1,0)
                     end
+                end
+            end
+            return
+        end
+
+        progress = Clamp(progress, 0, 1)
+
+        -- Fill style
+        if castStyle == "fill" and castFill then
+            castFill:SetAlpha(progress > 0 and 1 or 0)
+            local size = ringSize * math.max(progress, 0.01)
+            castFill:SetSize(size, size)
+        end
+
+        -- Ring style (segment reveal)
+        if castStyle == "ring" and castSegments then
+            local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
+            for i=1,NUM_CAST_SEGMENTS do
+                if castSegments[i] then
+                    castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, i <= numLit and 1 or 0)
                 end
             end
         end
@@ -1003,7 +1010,7 @@ addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
 addon:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 addon:RegisterEvent("ADDON_LOADED")
-addon:RegisterEvent("PLAYER_LOGIN") -- For modern settings panel registration
+addon:RegisterEvent("PLAYER_LOGIN")
 
 addon:SetScript("OnEvent", function(self,event,...)
     if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_SPECIALIZATION_CHANGED" then
@@ -1025,18 +1032,17 @@ addon:SetScript("OnEvent", function(self,event,...)
         local unit = ...
         if unit=="player" then casting = true end
     elseif event=="UNIT_SPELLCAST_STOP" or event=="UNIT_SPELLCAST_CHANNEL_STOP" then
-    local unit = ...
-    if unit=="player" then
-        casting = false
-        -- Immediately hide all cast segments
-        if castSegments then
-            for i = 1, NUM_CAST_SEGMENTS do
-                if castSegments[i] then
-                    castSegments[i]:SetVertexColor(1,1,1,0)
+        local unit = ...
+        if unit=="player" then
+            casting = false
+            if castSegments then
+                for i = 1, NUM_CAST_SEGMENTS do
+                    if castSegments[i] then
+                        castSegments[i]:SetVertexColor(1,1,1,0)
+                    end
                 end
             end
         end
-    end
     elseif event == "ADDON_LOADED" then
         local addonName = ...
         if addonName == "CursorRing" then
@@ -1044,18 +1050,18 @@ addon:SetScript("OnEvent", function(self,event,...)
             CreateCursorRing()
             UpdateCastStyle(castStyle)
             CreateOptionsPanel()
+            CreateOptionsPanel()
             UpdateOptionsPanel()
             UpdateRingVisibility()
             UpdateMouseTrailVisibility()
         end
-   -- Only initialize panel frame, don't register it yet
-    CreateOptionsPanel()
-    UpdateOptionsPanel()
+        CreateOptionsPanel()
+        UpdateOptionsPanel()
     elseif event == "PLAYER_LOGIN" then
         if panelFrame and Settings and Settings.RegisterAddOnCategory and Settings.RegisterCanvasLayoutCategory then
             local ok, err = pcall(function()
-            local category = Settings.RegisterCanvasLayoutCategory(panelFrame, "CursorRing")
-            Settings.RegisterAddOnCategory(category)
+                local category = Settings.RegisterCanvasLayoutCategory(panelFrame, "CursorRing")
+                Settings.RegisterAddOnCategory(category)
             end)
             if not ok then
                 print("CursorRing: Could not register options panel:", err)
