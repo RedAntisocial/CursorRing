@@ -13,10 +13,10 @@ local NUM_CAST_SEGMENTS = 240
 
 -- Outer Ring Options
 local outerRingOptions = {
-    { name = "Ring", file = "ring.tga", style = "ring" },
-    { name = "Thin Ring",   file = "thin_ring.tga", style = "ring" },
-    { name = "Star",    file = "star.tga", style = "ring" },
-    -- { name = "Heart",   file = "heart.tga", style = "ring" },
+    { name = "Ring", file = "ring.tga", style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
+    { name = "Thin Ring",   file = "thin_ring.tga", style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
+    { name = "Star",    file = "star.tga", style = "ring", supportedStyles = {"fill"} },
+    -- { name = "Heart",   file = "heart.tga", style = "ring", supportedStyles = {"ring", "fill"} },
 }
 
 -- SavedVariables DB
@@ -152,6 +152,8 @@ local function UpdateCastStyle(style)
         local texturePath
         if castStyle == "fill" then
             texturePath = "Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)
+        elseif castStyle == "wedge" then
+            texturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
         else
             texturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
         end
@@ -278,6 +280,8 @@ local function CreateCursorRing()
         local texturePath
         if castStyle == "fill" then
             texturePath = "Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)
+        elseif castStyle == "wedge" then
+            texturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
         else
             texturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
         end
@@ -405,7 +409,7 @@ local function CreateCursorRing()
             progress = 1 - ((now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000))
         else
             casting = false
-            -- Hide all segments when done
+            -- Hide all segments and fill when done (not just cast rings)
             if castFill then
                 castFill:SetAlpha(0)
                 castFill:SetSize(ringSize*0.01, ringSize*0.01)
@@ -429,8 +433,8 @@ local function CreateCursorRing()
             castFill:SetSize(size, size)
         end
 
-        -- Ring style (segment reveal)
-        if castStyle == "ring" and castSegments then
+        -- Ring/Wedge style (segment reveal)
+        if (castStyle == "ring" or castStyle == "wedge") and castSegments then
             local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
             for i=1,NUM_CAST_SEGMENTS do
                 if castSegments[i] then
@@ -438,6 +442,8 @@ local function CreateCursorRing()
                 end
             end
         end
+
+        -- restore wedge cast ring here
     end)
     UpdateRingVisibility()
 end
@@ -600,11 +606,33 @@ local function CreateOptionsPanel()
         currentTexture = opt.file                    -- update currentTexture
         ringTexture = opt.file                       -- update global ringTexture
         GetSpecDB().ringTexture = opt.file
+        
+        -- Check if current cast style is supported by new texture
+        local supportedStyles = opt.supportedStyles or {"ring"}
+        local isCurrentStyleSupported = false
+        for _, style in ipairs(supportedStyles) do
+            if style == currentCastStyle then
+                isCurrentStyleSupported = true
+                break
+            end
+        end
+        
+        -- If current style isn't supported, switch to first supported style
+        if not isCurrentStyleSupported then
+            currentCastStyle = supportedStyles[1]
+            GetSpecDB().castStyle = currentCastStyle
+        end
+        
         SaveSpecSettings()
         UpdateRingTexture(opt.file)
+        UpdateCastStyle(currentCastStyle)
 
         UIDropDownMenu_SetSelectedValue(ringTextureDropdown, opt.file)
         UIDropDownMenu_SetText(ringTextureDropdown, opt.name)
+        
+        -- Refresh the style dropdown to show only supported options
+        RefreshStyleDropdown()
+        
         -- print("CursorRing: Dropdown updated ring texture to " .. ringTexture)
     end
 
@@ -699,6 +727,7 @@ local function CreateOptionsPanel()
     local castStyleOptions = {
         { text = "Ring", value = "ring" },
         { text = "Fill", value = "fill" },
+        { text = "Wedge", value = "wedge" },
     }
 
     currentCastStyle = GetSpecDB().castStyle or "ring"
@@ -710,27 +739,63 @@ local function CreateOptionsPanel()
         UpdateCastStyle(styleValue)
 
         UIDropDownMenu_SetSelectedValue(styleDropdown, styleValue)
-        UIDropDownMenu_SetText(styleDropdown, (styleValue == "ring" and "Ring" or "Fill"))
+        local displayText = "Ring"
+        if styleValue == "fill" then
+            displayText = "Fill"
+        elseif styleValue == "wedge" then
+            displayText = "Wedge"
+        end
+        UIDropDownMenu_SetText(styleDropdown, displayText)
     end
 
-    UIDropDownMenu_Initialize(styleDropdown, function(self)
+    -- Function to get supported styles for current texture
+    local function GetSupportedStylesForCurrentTexture()
+        for _, opt in ipairs(outerRingOptions) do
+            if opt.file == currentTexture then
+                return opt.supportedStyles or {"ring"}
+            end
+        end
+        return {"ring"}
+    end
+
+    -- Function to refresh style dropdown based on current texture
+    function RefreshStyleDropdown()
+        local supportedStyles = GetSupportedStylesForCurrentTexture()
+        
+        UIDropDownMenu_Initialize(styleDropdown, function(self)
+            for _, opt in ipairs(castStyleOptions) do
+                -- Only show options that are supported by current texture
+                local isSupported = false
+                for _, supportedStyle in ipairs(supportedStyles) do
+                    if supportedStyle == opt.value then
+                        isSupported = true
+                        break
+                    end
+                end
+                
+                if isSupported then
+                    local info = UIDropDownMenu_CreateInfo()
+                    info.text = opt.text
+                    info.arg1 = opt.value
+                    info.func = OnCastStyleSelected
+                    info.checked = (currentCastStyle == opt.value)
+                    UIDropDownMenu_AddButton(info)
+                end
+            end
+        end)
+        
+        -- Update the displayed text
+        UIDropDownMenu_SetSelectedValue(styleDropdown, currentCastStyle)
         for _, opt in ipairs(castStyleOptions) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = opt.text
-            info.arg1 = opt.value
-            info.func = OnCastStyleSelected
-            info.checked = (currentCastStyle == opt.value)
-            UIDropDownMenu_AddButton(info)
-        end
-    end)
-
-    UIDropDownMenu_SetSelectedValue(styleDropdown, currentCastStyle)
-    for _, opt in ipairs(castStyleOptions) do
-        if opt.value == currentCastStyle then
-            UIDropDownMenu_SetText(styleDropdown, opt.text)
-            break
+            if opt.value == currentCastStyle then
+                UIDropDownMenu_SetText(styleDropdown, opt.text)
+                break
+            end
         end
     end
+
+    -- Initial setup
+    RefreshStyleDropdown()
 
     -- Reset Cursor Ring to Class Color Button
     local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
@@ -935,6 +1000,7 @@ local function CreateOptionsPanel()
     cursorRingOptionsPanel.styleDropdown = styleDropdown
     cursorRingOptionsPanel.trailColorTexture = trailColorTexture
     cursorRingOptionsPanel.sparkleColorTexture = sparkleColorTexture
+    cursorRingOptionsPanel.RefreshStyleDropdown = RefreshStyleDropdown
 
     -- Register Panel
     local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
@@ -997,7 +1063,17 @@ local function UpdateOptionsPanel()
     if cursorRingOptionsPanel.styleDropdown then
         local style = specDB.castStyle or "ring"
         UIDropDownMenu_SetSelectedValue(cursorRingOptionsPanel.styleDropdown, style)
-        UIDropDownMenu_SetText(cursorRingOptionsPanel.styleDropdown, (style == "fill" and "Fill" or "Ring"))
+        local displayText = "Ring"
+        if style == "fill" then
+            displayText = "Fill"
+        elseif style == "wedge" then
+            displayText = "Wedge"
+        end
+        UIDropDownMenu_SetText(cursorRingOptionsPanel.styleDropdown, displayText)
+    end
+    -- Refresh style dropdown to match current texture's supported styles
+    if cursorRingOptionsPanel.RefreshStyleDropdown then
+        cursorRingOptionsPanel.RefreshStyleDropdown()
     end
 end
 
@@ -1035,6 +1111,11 @@ addon:SetScript("OnEvent", function(self,event,...)
         local unit = ...
         if unit=="player" then
             casting = false
+            -- Clear cast visual effects immediately on interrupt
+            if castFill then
+                castFill:SetAlpha(0)
+                castFill:SetSize(ringSize*0.01, ringSize*0.01)
+            end
             if castSegments then
                 for i = 1, NUM_CAST_SEGMENTS do
                     if castSegments[i] then
