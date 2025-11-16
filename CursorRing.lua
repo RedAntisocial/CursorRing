@@ -263,7 +263,6 @@ local function CreateCursorRing()
     f:SetIgnoreParentScale(true)
     f:EnableMouse(false)
     f:SetClampedToScreen(false)
-    f:SetClampRectInsets(0,0,0,0)
 
     -- Outer ring
     ring = f:CreateTexture(nil, "BORDER")
