@@ -51,7 +51,7 @@ local function LoadSpecSettings()
     ringEnabled = specDB.ringEnabled
     if ringEnabled == nil then ringEnabled = true end
 
-    ringSize = specDB.ringSize or 64
+    ringSize = specDB.ringSize or 48
     showOutOfCombat = specDB.showOutOfCombat
     if showOutOfCombat == nil then showOutOfCombat = true end
 
