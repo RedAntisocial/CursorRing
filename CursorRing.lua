@@ -262,7 +262,7 @@ local function CreateCursorRing()
     f:SetFrameStrata("TOOLTIP")
     f:SetIgnoreParentScale(true)
     f:EnableMouse(false)
-    f:SetClampedToScreen(true)
+    f:SetClampedToScreen(false)
     f:SetClampRectInsets(0,0,0,0)
 
     -- Outer ring
