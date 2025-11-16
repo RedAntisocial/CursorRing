@@ -8,7 +8,7 @@ local panelLoaded = false
 local panelFrame = nil
 local trailGroup = {}
 local MAX_TRAIL_POINTS = 20
-local NUM_CAST_SEGMENTS = 240
+local NUM_CAST_SEGMENTS = 180
 
 
 -- Outer Ring Options
