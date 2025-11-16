@@ -262,7 +262,7 @@ local function CreateCursorRing()
     local f = CreateFrame("Frame", nil, UIParent)
     f:SetSize(ringSize, ringSize)
     f:SetFrameStrata("TOOLTIP")
-    f:SetIgnoreParentScale(true)
+    f:SetIgnoreParentScale(false)
     f:EnableMouse(false)
     f:SetClampedToScreen(false)
 
@@ -326,8 +326,8 @@ local function CreateCursorRing()
     f:SetScript("OnUpdate", function(self, elapsed)
         local x, y = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
-        x = x
-        y = y
+        x = x / scale
+        y = y / scale
 		
         self:ClearAllPoints()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
