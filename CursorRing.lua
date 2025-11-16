@@ -442,8 +442,6 @@ local function CreateCursorRing()
                 end
             end
         end
-
-        -- restore wedge cast ring here
     end)
     UpdateRingVisibility()
 end
