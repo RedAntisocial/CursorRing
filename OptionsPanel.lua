@@ -1,5 +1,6 @@
 -- CursorRing.lua
 -- Local variables
+_G.OptionsPanel = _G.OptionsPanel or {}
 local OptionsPanel = _G.OptionsPanel or {}
 
 local showOutOfCombat, cursorRingOptionsPanel, combatAlpha, outOfCombatAlpha
@@ -234,14 +235,6 @@ local function ShouldShowAllowedByCombatRules()
     return showOutOfCombat
 end
 
--- Compute active alpha for any cursor element
-local function GetCursorAlpha()
-    local inCombat = InCombatLockdown()
-    local inInst, t = IsInInstance()
-    local inInstance = inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario")
-    return (inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
-end
-
 local function UpdateRingVisibility()
     if ring then
         local shouldShow = ringEnabled and ShouldShowAllowedByCombatRules()
@@ -261,11 +254,9 @@ end
 -- Update Mouse Trail Visibility
 local function UpdateMouseTrailVisibility()
     mouseTrailActive = mouseTrail and ShouldShowAllowedByCombatRules()
-    local alpha = GetCursorAlpha()
-
     for _, point in ipairs(trailGroup) do
-        if point.tex then point.tex:SetAlpha(mouseTrailActive and alpha or 0) end
-        if point.sparkle then point.sparkle:SetAlpha(mouseTrailActive and alpha or 0) end
+        if point.tex then point.tex:SetAlpha(mouseTrailActive and 1 or 0) end
+        if point.sparkle then point.sparkle:SetAlpha(mouseTrailActive and 1 or 0) end
     end
 end
 
@@ -373,37 +364,7 @@ local function CreateCursorRing()
                 local inInstance = inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario")
                 local alpha = (inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
                 ring:SetAlpha(alpha)
-				-- Apply same alpha logic to cast fill
-				if castFill then
-					castFill:SetAlpha((castFill:GetAlpha() > 0) and alpha or 0)
-				end
-
-				-- Apply to cast segments
-				if castSegments then
-					for i = 1, NUM_CAST_SEGMENTS do
-						local seg = castSegments[i]
-						if seg then
-							local r, g, b, a = seg:GetVertexColor()
-							if a > 0 then
-								seg:SetVertexColor(r, g, b, alpha)
-							end
-						end
-					end
-				end
-
-				-- Apply to active trail points
-				if mouseTrailActive then
-					for _, point in ipairs(trailGroup) do
-						if point.tex then
-							local r, g, b = point.tex:GetVertexColor()
-							point.tex:SetVertexColor(r, g, b, alpha)
-						end
-						if point.sparkle then
-							local r, g, b = point.sparkle:GetVertexColor()
-							point.sparkle:SetVertexColor(r, g, b, alpha)
-						end
-					end
-				end
+				-- castSegments(alpha)
             end
         end
 
@@ -430,7 +391,7 @@ local function CreateCursorRing()
                     point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
                     local rc = trailColor or { r=1, g=1, b=1 }
                     point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade*0.8,0,1))
-                    point.tex:SetAlpha(fade * GetCursorAlpha())
+                    point.tex:SetAlpha(fade)
                     point.tex:SetSize(ringSize*0.4*fade, ringSize*0.4*fade)
                     point.tex:Show()
                     if sparkleTrail then
@@ -455,7 +416,7 @@ local function CreateCursorRing()
                         -- Fade slowly and smoothly
                         local fadeSpeed = 0.1 -- lower = slower fade
                         local fadeAdj = Clamp(fade / fadeSpeed, 0, 1) -- keeps alpha reaching 1
-                        point.sparkle:SetAlpha(fadeAdj * GetCursorAlpha())
+                        point.sparkle:SetAlpha(fadeAdj)
 
                         -- Randomized size for softness / natural variance
                         local baseSize = radius * fade * 0.5 * (specDB.sparkleMultiplier or 1.0)
