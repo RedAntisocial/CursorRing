@@ -1,4 +1,8 @@
 -- CursorRing.lua
+
+-- SavedVariables DB
+CursorRingDB = CursorRingDB or {}
+
 -- Local variables
 local OptionsPanel = _G.OptionsPanel or {}
 
@@ -20,9 +24,6 @@ local outerRingOptions = {
     { name = "Star",    file = "star.tga", style = "ring", supportedStyles = {"fill"} },
     -- { name = "Heart",   file = "heart.tga", style = "ring", supportedStyles = {"ring", "fill"} },
 }
-
--- SavedVariables DB
-CursorRingDB = CursorRingDB or {}
 
 -- CLAMP!!! I SAID CLAMP!!!!
 local function Clamp(val, min, max)
