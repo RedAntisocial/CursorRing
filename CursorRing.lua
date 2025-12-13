@@ -492,7 +492,7 @@ local function CreateCursorRing()
             if castSegments then
                 for i=1,NUM_CAST_SEGMENTS do
                     if castSegments[i] then
-                        castSegments[i]:SetVertexColor(1,1,1,0)
+                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b,0)
                     end
                 end
             end
@@ -1074,7 +1074,7 @@ addon:SetScript("OnEvent", function(self,event,...)
             if castSegments then
                 for i = 1, NUM_CAST_SEGMENTS do
                     if castSegments[i] then
-                        castSegments[i]:SetVertexColor(1,1,1,0)
+                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b,0)
                     end
                 end
             end
