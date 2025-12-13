@@ -501,9 +501,10 @@ local function CreateCursorRing()
 
         progress = Clamp(progress, 0, 1)
 
+        local shouldShow = ringEnabled and ShouldShowAllowedByCombatRules()
         -- Fill style
         if castStyle == "fill" and castFill then
-            castFill:SetAlpha(progress > 0 and 1 or 0)
+            castFill:SetAlpha(shouldShow and progress > 0 and 1 or 0)
             local size = ringSize * math.max(progress, 0.01)
             castFill:SetSize(size, size)
         end
@@ -513,7 +514,7 @@ local function CreateCursorRing()
             local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
             for i=1,NUM_CAST_SEGMENTS do
                 if castSegments[i] then
-                    castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, i <= numLit and 1 or 0)
+                    castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and i <= numLit and 1 or 0)
                 end
             end
         end
