@@ -8,7 +8,7 @@ local OptionsPanel = _G.OptionsPanel or {}
 
 local showOutOfCombat, cursorRingOptionsPanel, combatAlpha, outOfCombatAlpha
 local ring, ringEnabled, ringSize, ringColor, ringTexture, ringColorTexture, ringColorButton
-local casting, castColor, castStyle, castSegments, castFill, currentCastStyle, castColorTexture, castColorButton
+local casting, castColor, castStyle, castSegments, castFill, currentCastStyle, castColorTexture, castColorButton, castEnabled
 local mouseTrail, mouseTrailActive, trailFadeTime, trailColor, trailColorButton, sparkleColor, sparkleTrail, sparkleColorButton, sparkleColorTexture, sparkleMultiplier
 local panelLoaded = false
 local panelFrame = nil
@@ -56,6 +56,9 @@ local function LoadSpecSettings()
     ringEnabled = specDB.ringEnabled
     if ringEnabled == nil then ringEnabled = true end
 
+	castEnabled = specDB.castEnabled
+	if castEnabled == nil then castEnabled = true end
+
     ringSize = specDB.ringSize or 48
     showOutOfCombat = specDB.showOutOfCombat
     if showOutOfCombat == nil then showOutOfCombat = true end
@@ -82,6 +85,7 @@ local function LoadSpecSettings()
 
     -- Save back to DB so it's not an empty meaningless void
     specDB.ringEnabled = ringEnabled
+	specDB.castEnabled = castEnabled
     specDB.ringSize = ringSize
     specDB.ringColor = ringColor
     specDB.ringTexture = ringTexture
@@ -99,13 +103,14 @@ local function LoadSpecSettings()
     return specDB
 end
 
--- It puts the spec specific values in the CursorRingDB or it gets the hose again...
+-- It puts the spec specific values in the CursorRingDB when they're updated/changed or it gets the hose again...
 local function SaveSpecSettings()
     local specKey = GetCurrentSpecKey()
     CursorRingDB[specKey] = CursorRingDB[specKey] or {}
     local specDB = CursorRingDB[specKey]
 
     specDB.ringEnabled = ringEnabled
+	specDB.castEnabled = castEnabled
     specDB.ringSize = ringSize
     specDB.ringColor = ringColor
     specDB.ringTexture = ringTexture
@@ -473,7 +478,7 @@ local function CreateCursorRing()
 
     -- Separate ticker for cast progress updates (lower frequency)
     local castTicker = C_Timer.NewTicker(0.016, function()
-        if not casting then return end
+        if not casting or not castEnabled then return end
         
         local now = GetTime()
         local progress = 0
@@ -591,6 +596,23 @@ local function CreateOptionsPanel()
             specDB.ringEnabled = ringEnabled
             SaveSpecSettings()
             UpdateRingVisibility()
+        end
+    })
+	
+	-- Enable Cast Ring Checkbox
+    local castEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
+        key = "castEnabled",
+        label = "Enable Cast Effect",
+        default = specDB.castEnabled ~= false,
+        anchor = ringEnabledCheckbox,
+        point = "TOPLEFT",
+        relativePoint = "TOPLEFT",
+        xOffset = 280,
+        yOffset = 0,
+        onClick = function(checked)
+            castEnabled = checked
+            specDB.castEnabled = castEnabled
+            SaveSpecSettings()
         end
     })
 
@@ -782,7 +804,7 @@ local function CreateOptionsPanel()
 
     local styleDropdown, styleLabel = OptionsPanel:AddDropdown(panel, {
         key = "castStyle",
-        label = "Cast Ring Style:",
+        label = "Cast Effect Style:",
         labelOffset = 100,
         width = 150,
         default = currentCastStyle,
@@ -991,6 +1013,7 @@ local function UpdateOptionsPanel()
     -- Update all controls
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", specDB.showOutOfCombat or false)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", specDB.ringEnabled ~= false)
+	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", specDB.castEnabled ~= false)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", specDB.ringSize or 64)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", specDB.trailFadeTime or 1.0)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", specDB.sparkleMultiplier or 1.0)
