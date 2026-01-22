@@ -22,6 +22,8 @@ local outerRingOptions = {
     { name = "Ring", file = "ring.tga", style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
     { name = "Thin Ring",   file = "thin_ring.tga", style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
     { name = "Star",    file = "star.tga", style = "ring", supportedStyles = {"fill"} },
+    { name = "Hex",   file = "hex.tga", style = "ring", supportedStyles = {"fill"} },
+    { name = "Hex 90",   file = "hex90.tga", style = "ring", supportedStyles = {"fill"} },
     -- { name = "Heart",   file = "heart.tga", style = "ring", supportedStyles = {"ring", "fill"} },
 }
 
