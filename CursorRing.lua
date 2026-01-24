@@ -10,6 +10,7 @@ local showOutOfCombat, cursorRingOptionsPanel, combatAlpha, outOfCombatAlpha
 local ring, ringEnabled, ringSize, ringColor, ringTexture, ringColorTexture, ringColorButton
 local casting, castColor, castStyle, castSegments, castFill, currentCastStyle, castColorTexture, castColorButton, castEnabled
 local mouseTrail, mouseTrailActive, trailFadeTime, trailColor, trailColorButton, sparkleColor, sparkleTrail, sparkleColorButton, sparkleColorTexture, sparkleMultiplier
+local noDot
 local panelLoaded = false
 local panelFrame = nil
 local trailGroup = {}
@@ -37,6 +38,13 @@ end
 local function GetFillTextureForRing(ringFile)
     local baseName = ringFile:gsub("%.tga$", "")
     return baseName .. "_fill.tga"
+end
+
+-- Apply "_no_dot" suffix if enabled
+local function ApplyNoDotSuffix(filename)
+    if not noDot then return filename end
+    local baseName = filename:gsub("%.tga$", "")
+    return baseName .. "_no_dot.tga"
 end
 
 -- Get current spec key
@@ -73,6 +81,9 @@ local function LoadSpecSettings()
 	-- Ring Texture
     ringTexture = specDB.ringTexture or "ring.tga"
 
+    -- Centre Dot
+    noDot = specDB.noDot or false
+
     ringColor = specDB.ringColor or { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
     castColor = specDB.castColor or { r = 1, g = 1, b = 1 }
 
@@ -89,6 +100,7 @@ local function LoadSpecSettings()
     specDB.ringSize = ringSize
     specDB.ringColor = ringColor
     specDB.ringTexture = ringTexture
+    specDB.noDot = noDot
     specDB.castColor = castColor
     specDB.showOutOfCombat = showOutOfCombat
 	specDB.combatAlpha = combatAlpha
@@ -114,6 +126,7 @@ local function SaveSpecSettings()
     specDB.ringSize = ringSize
     specDB.ringColor = ringColor
     specDB.ringTexture = ringTexture
+    specDB.noDot = noDot
     specDB.castColor = castColor
     specDB.showOutOfCombat = showOutOfCombat
 	specDB.combatAlpha = combatAlpha
@@ -193,7 +206,7 @@ end
 -- Update Ring Texture/Shape
 local function UpdateRingTexture(textureFile)
     if ring then
-        ring:SetTexture("Interface\\AddOns\\CursorRing\\"..textureFile)
+        ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
     end
     if castFill then
         castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(textureFile))
@@ -306,7 +319,7 @@ local function CreateCursorRing()
 
     -- Outer ring
     ring = f:CreateTexture(nil, "BORDER")
-    ring:SetTexture("Interface\\AddOns\\CursorRing\\"..(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
+    ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
     ring:SetAllPoints()
     ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
 
@@ -529,24 +542,6 @@ local function CreateCursorRing()
     UpdateRingVisibility()
 end
 
---[[
--- Options panel styling
-local function StyleColorButtonInset(button)
-    local bg = button:CreateTexture(nil,"BACKGROUND")
-    bg:SetAllPoints()
-    bg:SetColorTexture(0,0,0,0.3)
-    local border = button:CreateTexture(nil,"BORDER")
-    border:SetPoint("TOPLEFT",-1,1)
-    border:SetPoint("BOTTOMRIGHT",1,-1)
-    border:SetColorTexture(0,0,0,1)
-    local highlight = button:CreateTexture(nil,"OVERLAY")
-    highlight:SetPoint("TOPLEFT",-1,1)
-    highlight:SetPoint("BOTTOMRIGHT",0,0)
-    highlight:SetColorTexture(1,1,1,0.1)
-    if button:GetNormalTexture() then button:GetNormalTexture():SetDrawLayer("OVERLAY",1) end
-end
-]]
--- Create Options Panel
 -- Create Options Panel
 local function CreateOptionsPanel()
     if panelLoaded then return end
@@ -773,7 +768,27 @@ local function CreateOptionsPanel()
         end
     })
 
-    -- Cast Color Picker (continues vertical flow from Ring Color)
+    -- Remove Centre Dot Checkbox (continues vertical flow from Ring Colour)
+     local noDotCheckbox = OptionsPanel:AddCheckbox(panel, {
+        key = "noDot",
+        label = "Remove Center Dot",
+		labelOffset = 100,
+		width = 150,
+        default = specDB.noDot or false,
+        anchor = ringTextureLabel,
+        point = "TOPLEFT",
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -20,
+        onClick = function(checked)
+            noDot = checked
+            specDB.noDot = noDot
+            SaveSpecSettings()
+            UpdateRingTexture(ringTexture)
+        end
+    })
+
+    -- Cast Colour Picker (continues vertical flow from Centre Dot Checkbox)
     local castColorData = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorButton, castColorTexture, castColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "castColor",
@@ -785,7 +800,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -40,
+        yOffset = -80,
         onColorChanged = function(r, g, b)
             castColor.r, castColor.g, castColor.b = r, g, b
             specDB.castColor = castColor
@@ -1017,6 +1032,9 @@ local function UpdateOptionsPanel()
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", specDB.ringSize or 64)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", specDB.trailFadeTime or 1.0)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", specDB.sparkleMultiplier or 1.0)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", specDB.mouseTrail or false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", specDB.sparkleTrail or false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", specDB.noDot or false)
 
     -- Update color pickers
     local c = specDB.ringColor or { r = 1, g = 1, b = 1 }
@@ -1075,7 +1093,7 @@ addon:SetScript("OnEvent", function(self,event,...)
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
         if ring then
-            ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ringTexture)
+            ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(ringTexture))
             -- print("CursorRing: Updated ring texture to " .. ringTexture)
         end
         if castFill then
