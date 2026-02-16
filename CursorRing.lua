@@ -254,7 +254,7 @@ local function LoadSpecSettings()
     
 		-- Save corrected settings back
 		profileManager:SaveSettings(GetCurrentSettings())
-
+        
     else
         -- First time defaults
         local _, class = UnitClass("player")
