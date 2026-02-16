@@ -524,9 +524,10 @@ local function CreateCursorRing()
 	local lastAlphaCheck = 0
     f:SetScript("OnUpdate", function(self, elapsed)
         local x, y = GetCursorPosition()
+        local left, bottom = UIParent:GetRect()
         local scale = UIParent:GetEffectiveScale()
-        x = x / scale
-        y = y / scale
+        x = x / scale - left
+        y = y / scale - bottom
 		
         self:ClearAllPoints()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
