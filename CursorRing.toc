@@ -2,7 +2,7 @@
 ## Title: Cursor Ring
 ## Notes: Puts a persistent class-coloured or preference-coloured ring and cast-ring around your mouse cursor.
 ## Author: Periago - Dalaran
-## Version: 1.2.1b
+## Version: 1.2.1
 ## IconTexture: Interface\Icons\inv_ring_oribos_01_copper
 ## X-Curse-Project-ID: 1376245
 ## X-WoWI-ID: 

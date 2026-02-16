@@ -97,9 +97,15 @@ function OptionsPanel:AddColorPicker(panel, config)
     texture:SetAllPoints()
     texture:SetColorTexture(config.r or 1, config.g or 1, config.b or 1, 1)
     
+    -- Store current color on the button
+    button.currentR = config.r or 1
+    button.currentG = config.g or 1
+    button.currentB = config.b or 1
+    
     button:SetScript("OnClick", function()
         local info = {}
-        info.r, info.g, info.b = config.r or 1, config.g or 1, config.b or 1
+        -- Read stored color values
+        info.r, info.g, info.b = button.currentR, button.currentG, button.currentB
         info.hasOpacity = false
         info.swatchFunc = function()
             local r, g, b
@@ -109,12 +115,14 @@ function OptionsPanel:AddColorPicker(panel, config)
                 r, g, b = info.r, info.g, info.b
             end
             texture:SetColorTexture(r, g, b, 1)
+            button.currentR, button.currentG, button.currentB = r, g, b
             if config.onColorChanged then
                 config.onColorChanged(r, g, b)
             end
         end
         info.cancelFunc = function(previous)
             texture:SetColorTexture(previous.r, previous.g, previous.b, 1)
+            button.currentR, button.currentG, button.currentB = previous.r, previous.g, previous.b
             if config.onColorChanged then
                 config.onColorChanged(previous.r, previous.g, previous.b)
             end
@@ -229,6 +237,9 @@ end
 function OptionsPanel:UpdateColorPicker(panel, key, r, g, b)
     if panel.elements[key] and panel.elements[key].texture then
         panel.elements[key].texture:SetColorTexture(r, g, b, 1)
+        panel.elements[key].button.currentR = r
+        panel.elements[key].button.currentG = g
+        panel.elements[key].button.currentB = b
     end
 end
 

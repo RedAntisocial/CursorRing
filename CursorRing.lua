@@ -237,11 +237,24 @@ end
 -- Load per-spec settings
 local function LoadSpecSettings()
     InitializeProfileManager()
-    
+
+    -- Load debug mode from saved variables
+    if CursorRingGlobalDB.debugMode ~= nil then
+        debugMode = CursorRingGlobalDB.debugMode
+    end
+
     local settings = profileManager:LoadSettings()
     
     if settings and next(settings) then
         ApplySettings(settings)
+
+		-- Sanity check for legacy data to address a reported user issue.
+		if castEnabled == nil then castEnabled = DEFAULTS.castEnabled end
+		if not castColor or not castColor.r then castColor = { r = 1, g = 1, b = 1 } end
+    
+		-- Save corrected settings back
+		profileManager:SaveSettings(GetCurrentSettings())
+
     else
         -- First time defaults
         local _, class = UnitClass("player")
@@ -343,9 +356,7 @@ local function UpdateCastStyle(style)
     end
     if castStyle == "fill" and castFill then
         castFill:Show()
-        local specDB = GetSpecDB()
-        local fillColor = specDB.castColor or { r = 1, g = 1, b = 1 }
-        castFill:SetVertexColor(fillColor.r, fillColor.g, fillColor.b, 1)
+        castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
     end
 
 end
@@ -371,7 +382,7 @@ end
 -- Spec specific Ring Color update
 local function UpdateRingColor(r, g, b)
     ringColor.r, ringColor.g, ringColor.b = r, g, b
-    GetSpecDB().ringColor = ringColor
+	GetSpecDB().ringColor = { r = r, g = g, b = b }
     SaveSpecSettings()
     if ring then
         ring:SetVertexColor(r, g, b, 1)
@@ -381,8 +392,11 @@ end
 -- Spec specific Cast Color update
 local function UpdateCastColor(r, g, b)
     castColor.r, castColor.g, castColor.b = r, g, b
-    GetSpecDB().castColor = castColor
+    GetSpecDB().castColor = { r = r, g = g, b = b }
     SaveSpecSettings()
+	if castFill then
+        castFill:SetVertexColor(r, g, b, 1)
+    end
 end
 
 -- Update Cast Segments for the selected shape
@@ -852,7 +866,7 @@ local function CreateOptionsPanel()
         yOffset = -24,
         onColorChanged = function(r, g, b)
             ringColor.r, ringColor.g, ringColor.b = r, g, b
-            GetSpecDB().ringColor = ringColor
+            GetSpecDB().ringColor = { r = r, g = g, b = b }
             SaveSpecSettings()
             UpdateRingColor(r, g, b)
         end
@@ -951,7 +965,7 @@ local function CreateOptionsPanel()
         yOffset = -64,
         onColorChanged = function(r, g, b)
             castColor.r, castColor.g, castColor.b = r, g, b
-            GetSpecDB().castColor = castColor
+            GetSpecDB().castColor = { r = r, g = g, b = b }
             SaveSpecSettings()
             UpdateCastColor(r, g, b)
         end
@@ -1087,7 +1101,7 @@ local function CreateOptionsPanel()
         yOffset = -20,
         onColorChanged = function(r, g, b)
             trailColor.r, trailColor.g, trailColor.b = r, g, b
-            GetSpecDB().trailColor = trailColor
+            GetSpecDB().trailColor = { r = r, g = g, b = b }
             SaveSpecSettings()
         end
     })
@@ -1107,7 +1121,7 @@ local function CreateOptionsPanel()
         yOffset = 0,
         onColorChanged = function(r, g, b)
             sparkleColor.r, sparkleColor.g, sparkleColor.b = r, g, b
-            GetSpecDB().sparkleColor = sparkleColor
+            GetSpecDB().sparkleColor = { r = r, g = g, b = b }
             SaveSpecSettings()
         end
     })
@@ -1462,43 +1476,35 @@ local function UpdateOptionsPanel()
     local specDB = GetSpecDB()
 
     -- Update all controls
-    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", specDB.showOutOfCombat or false)
-    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", specDB.ringEnabled ~= false)
-	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", specDB.castEnabled ~= false)
-    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", specDB.ringSize or 64)
-    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", specDB.trailFadeTime or 1.0)
-    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", specDB.sparkleMultiplier or 1.0)
-    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", specDB.mouseTrail or false)
-    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", specDB.sparkleTrail or false)
-    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", specDB.noDot or false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
+	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", castEnabled ~= false)
+    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
+    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
+    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", sparkleTrail or false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", noDot or false)
 
     -- Update color pickers
-    local c = specDB.ringColor or { r = 1, g = 1, b = 1 }
-    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", c.r, c.g, c.b)
-    
-    c = specDB.castColor or { r = 1, g = 1, b = 1 }
-    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "castColor", c.r, c.g, c.b)
-    
-    c = specDB.trailColor or { r = 1, g = 1, b = 1 }
-    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", c.r, c.g, c.b)
-    
-    c = specDB.sparkleColor or { r = 1, g = 1, b = 1 }
-    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", c.r, c.g, c.b)
+	OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
+    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "castColor", castColor.r, castColor.g, castColor.b)
+    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
+    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+
 
     -- Update dropdowns
-    local tex = specDB.ringTexture or "ring.tga"
     local texName = "Ring"
     for _, opt in ipairs(outerRingOptions) do
-        if opt.file == tex then
+        if opt.file == ringTexture then
             texName = opt.name
             break
         end
     end
-    OptionsPanel:UpdateDropdown(cursorRingOptionsPanel, "ringTexture", tex, texName)
+    OptionsPanel:UpdateDropdown(cursorRingOptionsPanel, "ringTexture", ringTexture, texName)
 
-    local style = specDB.castStyle or "ring"
-    local styleName = style == "fill" and "Fill" or (style == "wedge" and "Wedge" or "Ring")
-    OptionsPanel:UpdateDropdown(cursorRingOptionsPanel, "castStyle", style, styleName)
+    local styleName = currentCastStyle == "fill" and "Fill" or (currentCastStyle == "wedge" and "Wedge" or "Ring")
+    OptionsPanel:UpdateDropdown(cursorRingOptionsPanel, "castStyle", currentCastStyle, styleName)
 
     -- Refresh style dropdown
     if cursorRingOptionsPanel.RefreshStyleDropdown then
@@ -1541,12 +1547,14 @@ addon:SetScript("OnEvent", function(self,event,...)
         UpdateMouseTrailVisibility()
         if ring then
             ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(ringTexture))
+			ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
             if debugMode then
 				print("CursorRing: Updated ring texture to " .. ringTexture)
 			end
         end
         if castFill then
             castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture))
+			castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
         end        
     elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
         UpdateRingVisibility()
@@ -1587,13 +1595,13 @@ end)
 
 -- Slash command for debug toggle
 SLASH_CURSORRING1 = "/cursorring"
-SLASH_CURSORRING2 = "/cr"
 SlashCmdList["CURSORRING"] = function(msg)
     if msg == "debug" then
         debugMode = not debugMode
+        CursorRingGlobalDB.debugMode = debugMode
         print("CursorRing: Debug mode " .. (debugMode and "enabled" or "disabled"))
     else
         print("CursorRing commands:")
-        print("  /cursorring debug (or /cr debug) - Toggle debug output")
+        print("  /cursorring debug - Toggle debug output")
     end
 end
