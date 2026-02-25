@@ -357,6 +357,11 @@ local function UpdateCastStyle(style)
     if castStyle == "fill" and castFill then
         castFill:Show()
         castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+    else
+        -- Hide the fill if not in fill style to prevent the white dot problem
+        if castFill then
+            castFill:Hide()
+        end
     end
 
 end
