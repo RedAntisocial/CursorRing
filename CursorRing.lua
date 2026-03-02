@@ -511,9 +511,7 @@ local function CreateCursorRing()
     -- Cast Fill (for scaling animation)
     castFill = f:CreateTexture(nil, "OVERLAY")
     castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)) -- ensure *_fill.tga
-    local specDB = GetSpecDB()
-    local fillColor = specDB.castColor or { r = 1, g = 1, b = 1 }
-    castFill:SetVertexColor(fillColor.r, fillColor.g, fillColor.b, 1)
+    castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
     castFill:SetAlpha(0)
     castFill:SetSize(ringSize*0.01, ringSize*0.01)
     castFill:SetPoint("CENTER", f, "CENTER")
@@ -736,7 +734,7 @@ local function CreateOptionsPanel()
         yOffset = -20,
         onClick = function(checked)
             showOutOfCombat = checked
-            specDB.showOutOfCombat = showOutOfCombat
+            GetSpecDB().showOutOfCombat = showOutOfCombat
             SaveSpecSettings()
             UpdateShowOutOfCombat(showOutOfCombat)
         end
@@ -755,7 +753,7 @@ local function CreateOptionsPanel()
         onClick = function(checked)
             ringEnabled = checked
             _G.ringEnabled = ringEnabled
-            specDB.ringEnabled = ringEnabled
+            GetSpecDB().ringEnabled = ringEnabled
             SaveSpecSettings()
             UpdateRingVisibility()
         end
@@ -773,7 +771,7 @@ local function CreateOptionsPanel()
         yOffset = 0,
         onClick = function(checked)
             castEnabled = checked
-            specDB.castEnabled = castEnabled
+            GetSpecDB().castEnabled = castEnabled
             SaveSpecSettings()
         end
     })
@@ -796,7 +794,7 @@ local function CreateOptionsPanel()
         yOffset = -30,
         onValueChanged = function(value)
             ringSize = value
-            specDB.ringSize = ringSize
+            GetSpecDB().ringSize = ringSize
             SaveSpecSettings()
             UpdateRingSize(ringSize)
         end
@@ -810,7 +808,7 @@ local function CreateOptionsPanel()
         min = 0,
         max = 1,
         step = 0.05,
-        default = specDB.combatAlpha or 1.0,
+        default = GetSpecDB().combatAlpha or 1.0,
         lowText = "0%",
         highText = "100%",
         anchor = ringSizeSlider,
@@ -837,7 +835,7 @@ local function CreateOptionsPanel()
         min = 0,
         max = 1,
         step = 0.05,
-        default = specDB.outOfCombatAlpha or 1.0,
+        default = GetSpecDB().outOfCombatAlpha or 1.0,
         lowText = "0%",
         highText = "100%",
         anchor = combatAlphaSlider,
@@ -921,7 +919,7 @@ local function CreateOptionsPanel()
                 
                 if not isSupported then
                     currentCastStyle = supportedStyles[1]
-                    specDB.castStyle = currentCastStyle
+                    GetSpecDB().castStyle = currentCastStyle
                 end
             end
             
@@ -1049,7 +1047,7 @@ local function CreateOptionsPanel()
             local _, class = UnitClass("player")
             local classColor = RAID_CLASS_COLORS[class]
             ringColor = { r = classColor.r, g = classColor.g, b = classColor.b }
-            GetSpecDB().ringColor = ringColor
+            GetSpecDB().ringColor = { r = classColor.r, g = classColor.g, b = classColor.b }
             SaveSpecSettings()
             UpdateRingColor(classColor.r, classColor.g, classColor.b)
             OptionsPanel:UpdateColorPicker(panel, "ringColor", classColor.r, classColor.g, classColor.b)
