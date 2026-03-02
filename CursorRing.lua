@@ -784,7 +784,7 @@ local function CreateOptionsPanel()
         min = 32,
         max = 256,
         step = 1,
-        default = specDB.ringSize or 64,
+        default = specDB.ringSize or 48,
         lowText = "Small",
         highText = "Large",
         anchor = ringEnabledCheckbox,
@@ -808,7 +808,7 @@ local function CreateOptionsPanel()
         min = 0,
         max = 1,
         step = 0.05,
-        default = GetSpecDB().combatAlpha or 1.0,
+        default = specDB.combatAlpha or 1.0,
         lowText = "0%",
         highText = "100%",
         anchor = ringSizeSlider,
@@ -835,7 +835,7 @@ local function CreateOptionsPanel()
         min = 0,
         max = 1,
         step = 0.05,
-        default = GetSpecDB().outOfCombatAlpha or 1.0,
+        default = specDB.outOfCombatAlpha or 1.0,
         lowText = "0%",
         highText = "100%",
         anchor = combatAlphaSlider,
@@ -1483,6 +1483,8 @@ local function UpdateOptionsPanel()
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
 	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", castEnabled ~= false)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
+	OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
+    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
