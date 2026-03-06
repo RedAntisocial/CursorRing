@@ -21,8 +21,17 @@ local sparkleColor = { r = 1, g = 1, b = 1 }
 local noDot
 local profileManager
 local panelLoaded = false
-local trailGroup = {}
+local trailBuffer = {}
+local trailTail = 0
+local trailCount = 0
 local MAX_TRAIL_POINTS = 20
+local cachedUILeft, cachedUIBottom
+
+-- Pre-allocate trail point tables (textures still created lazily)
+for i = 1, MAX_TRAIL_POINTS do
+    trailBuffer[i] = {}
+end
+
 local NUM_CAST_SEGMENTS = 180
 
 -- Adding a single defaults table because I keep mismatching when I define them all over the place.
@@ -446,10 +455,11 @@ local function UpdateMouseTrailVisibility()
     mouseTrailActive = mouseTrail and ShouldShowAllowedByInstanceRules()
     local alpha = GetCursorAlpha()
 
-    for _, point in ipairs(trailGroup) do
-        if point.tex then point.tex:SetAlpha(mouseTrailActive and alpha or 0) end
-        if point.sparkle then point.sparkle:SetAlpha(mouseTrailActive and alpha or 0) end
-    end
+    for i = 1, MAX_TRAIL_POINTS do
+		local point = trailBuffer[i]
+		if point.tex then point.tex:SetAlpha(mouseTrailActive and alpha or 0) end
+		if point.sparkle then point.sparkle:SetAlpha(mouseTrailActive and alpha or 0) end
+	end
 end
 
 -- Spec specific Ring Enabled setting update
@@ -536,25 +546,31 @@ local function CreateCursorRing()
     -- OnUpdate - cursor position only
 	local lastAlphaCheck = 0
     f:SetScript("OnUpdate", function(self, elapsed)
-        local x, y = GetCursorPosition()
-        local left, bottom = UIParent:GetRect()
-        local scale = UIParent:GetEffectiveScale()
-        x = x / scale - left
-        y = y / scale - bottom
-		
-        self:ClearAllPoints()
-        self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+		-- Cache UIParent rect (updated externally on scale/display change events)
+		if not cachedUILeft then
+			cachedUILeft, cachedUIBottom = UIParent:GetRect()
+		end
+
+		local x, y = GetCursorPosition()
+		local scale = UIParent:GetEffectiveScale()
+		x = x / scale - cachedUILeft
+		y = y / scale - cachedUIBottom
+
+		self:ClearAllPoints()
+		self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+
+		-- Compute alpha once per frame
+		local cursorAlpha = GetCursorAlpha()
 
 		-- Check alpha state periodically (every 0.5 seconds)
-        lastAlphaCheck = lastAlphaCheck + elapsed
-        if lastAlphaCheck >= 0.5 then
-            lastAlphaCheck = 0
-            if ring and ringEnabled and ShouldShowAllowedByInstanceRules() then
-                local alpha = GetCursorAlpha()
-                ring:SetAlpha(alpha)
+		lastAlphaCheck = lastAlphaCheck + elapsed
+		if lastAlphaCheck >= 0.5 then
+			lastAlphaCheck = 0
+			if ring and ringEnabled and ShouldShowAllowedByInstanceRules() then
+				ring:SetAlpha(cursorAlpha)
 				-- Apply same alpha logic to cast fill
 				if castFill then
-					castFill:SetAlpha((castFill:GetAlpha() > 0) and alpha or 0)
+					castFill:SetAlpha((castFill:GetAlpha() > 0) and cursorAlpha or 0)
 				end
 
 				-- Apply to cast segments
@@ -564,7 +580,7 @@ local function CreateCursorRing()
 						if seg then
 							local r, g, b, a = seg:GetVertexColor()
 							if a > 0 then
-								seg:SetVertexColor(r, g, b, alpha)
+								seg:SetVertexColor(r, g, b, cursorAlpha)
 							end
 						end
 					end
@@ -572,80 +588,91 @@ local function CreateCursorRing()
 
 				-- Apply to active trail points
 				if mouseTrailActive then
-					for _, point in ipairs(trailGroup) do
+					for i = 1, MAX_TRAIL_POINTS do
+						local point = trailBuffer[i]
 						if point.tex then
 							local r, g, b = point.tex:GetVertexColor()
-							point.tex:SetVertexColor(r, g, b, alpha)
+							point.tex:SetVertexColor(r, g, b, cursorAlpha)
 						end
 						if point.sparkle then
 							local r, g, b = point.sparkle:GetVertexColor()
-							point.sparkle:SetVertexColor(r, g, b, alpha)
+							point.sparkle:SetVertexColor(r, g, b, cursorAlpha)
 						end
 					end
 				end
-            end
-        end
+			end
+		end
 
-        -- Mouse Trail
-        if mouseTrailActive then
-            local now = GetTime()
-            table.insert(trailGroup, { x=x, y=y, created=now })
-            while #trailGroup > MAX_TRAIL_POINTS do
-                local old = table.remove(trailGroup, 1)
-                if old and old.tex then old.tex:Hide() end
-                if old and old.sparkle then old.sparkle:Hide() end
-            end
-            for i=#trailGroup,1,-1 do
-                local point = trailGroup[i]
-                local age = now - point.created
-                local fade = 1 - (age / (trailFadeTime or 1))
-                if fade <= 0 then
-                    if point.tex then point.tex:Hide() end
-                    if point.sparkle then point.sparkle:Hide() end
-                    table.remove(trailGroup, i)
-                else
-                    if not point.tex then point.tex = CreateTrailTexture(self) end
-                    point.tex:ClearAllPoints()
-                    point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
-                    local rc = trailColor or { r=1, g=1, b=1 }
-                    point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade*0.8,0,1))
-                    point.tex:SetAlpha(fade * GetCursorAlpha())
-                    point.tex:SetSize(ringSize*0.4*fade, ringSize*0.4*fade)
-                    point.tex:Show()
-                    if sparkleTrail then
-                        if not point.sparkle then 
-                            point.sparkle = CreateSparkleTexture(self) 
-                            point.sparkle:SetBlendMode("ADD")  -- ensures smooth additive glow
-                        end
+		-- Mouse Trail
+		if mouseTrailActive then
+			local now = GetTime()
 
-                        -- Circular distribution
-                        local radius = ringSize * 0.3
-                        local angle = math.random() * 2 * math.pi
-                        local distance = (math.random() ^ 1.4) * radius -- Adjust center bias ( > 1 = more center bias)
-                        local dx = math.cos(angle) * distance
-                        local dy = math.sin(angle) * distance
+			-- Write new point into circular buffer
+			trailTail = trailTail % MAX_TRAIL_POINTS + 1
+			local newPoint = trailBuffer[trailTail]
+			if trailCount == MAX_TRAIL_POINTS then
+				-- Overwriting oldest slot — hide its textures
+				if newPoint.tex then newPoint.tex:Hide() end
+				if newPoint.sparkle then newPoint.sparkle:Hide() end
+			else
+				trailCount = trailCount + 1
+			end
+			newPoint.x = x
+			newPoint.y = y
+			newPoint.created = now
 
-                        point.sparkle:ClearAllPoints()
-                        point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
+			-- Iterate newest to oldest
+			for i = 0, trailCount - 1 do
+				local idx = (trailTail - i - 1) % MAX_TRAIL_POINTS + 1
+				local point = trailBuffer[idx]
+				local age = now - point.created
+				local fade = 1 - (age / (trailFadeTime or 1))
+				if fade <= 0 then
+					if point.tex then point.tex:Hide() end
+					if point.sparkle then point.sparkle:Hide() end
+				else
+					if not point.tex then point.tex = CreateTrailTexture(self) end
+					point.tex:ClearAllPoints()
+					point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
+					local rc = trailColor or { r=1, g=1, b=1 }
+					point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade*0.8,0,1))
+					point.tex:SetAlpha(fade * cursorAlpha)
+					point.tex:SetSize(ringSize*0.4*fade, ringSize*0.4*fade)
+					point.tex:Show()
+					if sparkleTrail then
+						if not point.sparkle then
+							point.sparkle = CreateSparkleTexture(self)
+							point.sparkle:SetBlendMode("ADD")  -- ensures smooth additive glow
+						end
 
-                        local sc = sparkleColor or { r = 1, g = 1, b = 1 }
-                        point.sparkle:SetVertexColor(sc.r, sc.g, sc.b, 1)
+						-- Circular distribution
+						local radius = ringSize * 0.3
+						local angle = math.random() * 2 * math.pi
+						local distance = (math.random() ^ 1.4) * radius -- Adjust center bias ( > 1 = more center bias)
+						local dx = math.cos(angle) * distance
+						local dy = math.sin(angle) * distance
 
-                        -- Fade slowly and smoothly
-                        local fadeSpeed = 0.1 -- lower = slower fade
-                        local fadeAdj = Clamp(fade / fadeSpeed, 0, 1) -- keeps alpha reaching 1
-                        point.sparkle:SetAlpha(fadeAdj * GetCursorAlpha())
+						point.sparkle:ClearAllPoints()
+						point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
 
-                        -- Randomized size for softness / natural variance
-                        local baseSize = radius * fade * 0.5 * (sparkleMultiplier or 1.0)
-                        local variance = math.random() * baseSize * 0.5
-                        point.sparkle:SetSize(baseSize + variance, baseSize + variance)
-                        point.sparkle:Show()
-                    end
-                end
-            end
-        end
-    end)
+						local sc = sparkleColor or { r = 1, g = 1, b = 1 }
+						point.sparkle:SetVertexColor(sc.r, sc.g, sc.b, 1)
+
+						-- Fade slowly and smoothly
+						local fadeSpeed = 0.1 -- lower = slower fade
+						local fadeAdj = Clamp(fade / fadeSpeed, 0, 1) -- keeps alpha reaching 1
+						point.sparkle:SetAlpha(fadeAdj * cursorAlpha)
+
+						-- Randomized size for softness / natural variance
+						local baseSize = radius * fade * 0.5 * (sparkleMultiplier or 1.0)
+						local variance = math.random() * baseSize * 0.5
+						point.sparkle:SetSize(baseSize + variance, baseSize + variance)
+						point.sparkle:Show()
+					end
+				end
+			end
+		end
+	end)
 
     -- Separate ticker for cast progress updates (lower frequency)
     local castTicker = C_Timer.NewTicker(0.016, function()
@@ -1532,6 +1559,8 @@ addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
 addon:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 addon:RegisterEvent("PLAYER_REGEN_DISABLED")
 addon:RegisterEvent("PLAYER_REGEN_ENABLED")
+addon:RegisterEvent("UI_SCALE_CHANGED")
+addon:RegisterEvent("DISPLAY_SIZE_CHANGED")
 addon:RegisterEvent("ADDON_LOADED")
 
 addon:SetScript("OnEvent", function(self,event,...)
@@ -1577,6 +1606,8 @@ addon:SetScript("OnEvent", function(self,event,...)
                 end
             end
         end
+	elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
+		cachedUILeft, cachedUIBottom = nil, nil
     elseif event == "ADDON_LOADED" then
         local addonName = ...
         if addonName == "CursorRing" then
