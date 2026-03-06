@@ -410,10 +410,8 @@ local function UpdateCastSegmentsForShape(shape)
     UpdateCastStyle(castStyle)
 end
 
--- Determine if ring/trail should be shown based on combat/instance rules
-local function ShouldShowAllowedByCombatRules()
-    -- if InCombatLockdown() then return true end
-	if InCombatLockdown() or UnitAffectingCombat("player") then return true end
+-- Determine if ring/trail should be shown based on instance checkbox
+local function ShouldShowAllowedByInstanceRules()
     local inInst, t = IsInInstance()
     if inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario") then
         return true
@@ -423,15 +421,13 @@ end
 
 -- Compute active alpha for any cursor element
 local function GetCursorAlpha()
-    local inCombat = InCombatLockdown()
-    local inInst, t = IsInInstance()
-    local inInstance = inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario")
-    return (inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
+    local inCombat = InCombatLockdown() or UnitAffectingCombat("player")
+    return inCombat and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
 end
 
 local function UpdateRingVisibility()
     if ring then
-        local shouldShow = ringEnabled and ShouldShowAllowedByCombatRules()
+        local shouldShow = ringEnabled and ShouldShowAllowedByInstanceRules()
         ring:SetShown(shouldShow)
         if shouldShow then
             local inCombat = InCombatLockdown()
@@ -447,7 +443,7 @@ end
 
 -- Update Mouse Trail Visibility
 local function UpdateMouseTrailVisibility()
-    mouseTrailActive = mouseTrail and ShouldShowAllowedByCombatRules()
+    mouseTrailActive = mouseTrail and ShouldShowAllowedByInstanceRules()
     local alpha = GetCursorAlpha()
 
     for _, point in ipairs(trailGroup) do
@@ -553,11 +549,8 @@ local function CreateCursorRing()
         lastAlphaCheck = lastAlphaCheck + elapsed
         if lastAlphaCheck >= 0.5 then
             lastAlphaCheck = 0
-            if ring and ringEnabled and ShouldShowAllowedByCombatRules() then
-                local inCombat = InCombatLockdown()
-                local inInst, t = IsInInstance()
-                local inInstance = inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario")
-                local alpha = (inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
+            if ring and ringEnabled and ShouldShowAllowedByInstanceRules() then
+                local alpha = GetCursorAlpha()
                 ring:SetAlpha(alpha)
 				-- Apply same alpha logic to cast fill
 				if castFill then
@@ -686,7 +679,7 @@ local function CreateCursorRing()
 
         progress = Clamp(progress, 0, 1)
 
-        local shouldShow = ringEnabled and ShouldShowAllowedByCombatRules()
+        local shouldShow = ringEnabled and ShouldShowAllowedByInstanceRules()
         -- Fill style
         if castStyle == "fill" and castFill then
             castFill:SetAlpha(shouldShow and progress > 0 and 1 or 0)
@@ -722,11 +715,11 @@ local function CreateOptionsPanel()
 
     cursorRingOptionsPanel = panel
 
-    -- Show Out of Combat Checkbox
+    -- Show Outside of Instance Checkbox - Formerly Show Outside of Instances/Combat, but the alpha sliders take care of that. Let this be a lesson on variable naming (that i will inevitably never learn)
     local showOutOfCombatCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "showOutOfCombat",
-        label = "Show Ring and Mouse Trail outside of combat/instances",
-        default = specDB.showOutOfCombat or false,
+        label = "Show Ring and Mouse Trail outside of instances",
+        default = specDB.showOutOfCombat or false, -- variable has to remain showOutOfCombat so I don't break the stored values.
         anchor = panel.title,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
