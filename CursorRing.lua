@@ -801,7 +801,7 @@ local function CreateOptionsPanel()
         key = "ringSize",
         name = "CursorRingSizeSlider",
         label = "Ring Size",
-        min = 32,
+        min = 16,
         max = 256,
         step = 1,
         default = specDB.ringSize or 48,
