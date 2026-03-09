@@ -421,10 +421,10 @@ end
 
 -- Determine if ring/trail should be shown based on instance checkbox
 local function ShouldShowAllowedByInstanceRules()
-    local inInst, t = IsInInstance()
-    if inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario") then
-        return true
-    end
+    local _, inInstance = IsInInstance()
+    if inInstance ~= "none" then
+		return true
+	end
     return showOutOfCombat
 end
 
@@ -1552,6 +1552,9 @@ end
 -- Event handling
 local addon = CreateFrame("Frame")
 addon:RegisterEvent("PLAYER_ENTERING_WORLD")
+addon:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+addon:RegisterEvent("ZONE_CHANGED_INDOORS")
+addon:RegisterEvent("ZONE_CHANGED")
 addon:RegisterEvent("UNIT_SPELLCAST_START")
 addon:RegisterEvent("UNIT_SPELLCAST_STOP")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
@@ -1564,7 +1567,7 @@ addon:RegisterEvent("DISPLAY_SIZE_CHANGED")
 addon:RegisterEvent("ADDON_LOADED")
 
 addon:SetScript("OnEvent", function(self,event,...)
-    if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_SPECIALIZATION_CHANGED" then
+    if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_SPECIALIZATION_CHANGED" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED_INDOORS" or event=="ZONE_CHANGED" then
         LoadSpecSettings()
         CreateCursorRing()
         UpdateCastStyle(currentCastStyle)
