@@ -1567,7 +1567,7 @@ addon:RegisterEvent("DISPLAY_SIZE_CHANGED")
 addon:RegisterEvent("ADDON_LOADED")
 
 addon:SetScript("OnEvent", function(self,event,...)
-    if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_SPECIALIZATION_CHANGED" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED_INDOORS" or event=="ZONE_CHANGED" then
+    if event=="PLAYER_ENTERING_WORLD" or event=="PLAYER_SPECIALIZATION_CHANGED" then
         LoadSpecSettings()
         CreateCursorRing()
         UpdateCastStyle(currentCastStyle)
@@ -1586,7 +1586,7 @@ addon:SetScript("OnEvent", function(self,event,...)
             castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture))
 			castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
         end        
-    elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
+    elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED_INDOORS" or event=="ZONE_CHANGED" then
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
 	elseif event=="UNIT_SPELLCAST_START" or event=="UNIT_SPELLCAST_CHANNEL_START" then
