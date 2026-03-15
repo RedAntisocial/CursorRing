@@ -334,6 +334,11 @@ local function GetSpecDB()
     return profileManager:GetCharacterSettings()
 end
 
+-- Ring Outline Scaling Helper Function (to stop the separation anxiety)
+local function GetEffectiveOutlineSize()
+    return ringOutlineSize * (ringSize / 48)
+end
+
 -- Spec specific Ring Size update
 local function UpdateRingSize(size)
     ringSize = size
@@ -342,7 +347,7 @@ local function UpdateRingSize(size)
     if ring and ring:GetParent() then
         ring:GetParent():SetSize(ringSize, ringSize)
 		if ringOutline then
-			ringOutline:SetSize(ringSize + ringOutlineSize, ringSize + ringOutlineSize)
+			ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
 		end
     end
 end
@@ -361,7 +366,7 @@ local function UpdateRingOutlineSize(size)
     GetSpecDB().ringOutlineSize = size
     SaveSpecSettings()
     if ringOutline then
-        ringOutline:SetSize(ringSize + ringOutlineSize, ringSize + ringOutlineSize)
+        ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
     end
 end
 
@@ -554,7 +559,7 @@ local function CreateCursorRing()
     ringOutline = f:CreateTexture(nil, "BACKGROUND")
     ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
     ringOutline:SetPoint("CENTER", f, "CENTER")
-    ringOutline:SetSize(ringSize + ringOutlineSize, ringSize + ringOutlineSize)
+    ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
     ringOutline:SetVertexColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b, 1)
     ringOutline:SetShown(ringOutlineEnabled)
 
@@ -961,6 +966,27 @@ local function CreateOptionsPanel()
         end
     })
 
+    -- Reset Button - ringColor
+    local resetButton = OptionsPanel:AddButton(panel, {
+        key = "resetColor",
+        text = "Reset",
+        width = 60,
+        height = 25,
+        anchor = ringColorLabel,
+        point = "LEFT",
+        relativePoint = "LEFT",
+        xOffset = 140,
+        yOffset = 0,
+        onClick = function()
+            local _, class = UnitClass("player")
+            local classColor = RAID_CLASS_COLORS[class]
+            ringColor = { r = classColor.r, g = classColor.g, b = classColor.b }
+            GetSpecDB().ringColor = { r = classColor.r, g = classColor.g, b = classColor.b }
+            SaveSpecSettings()
+            UpdateRingColor(classColor.r, classColor.g, classColor.b)
+            OptionsPanel:UpdateColorPicker(panel, "ringColor", classColor.r, classColor.g, classColor.b)
+        end
+    })
     -- Ring Texture Dropdown (positioned to the right of Ring Color)
     local currentTexture = specDB.ringTexture or "ring.tga"
     local ringTextureOptions = {}
@@ -1077,15 +1103,36 @@ local function CreateOptionsPanel()
             UpdateRingOutlineColor(r, g, b)
         end
     })
-
+	
+	-- Reset Button - ringOutlineColor
+    local resetButton = OptionsPanel:AddButton(panel, {
+        key = "resetOutlineColor",
+        text = "Reset",
+        width = 60,
+        height = 25,
+        anchor = ringOutlineColorLabel,
+        point = "LEFT",
+        relativePoint = "LEFT",
+        xOffset = 140,
+        yOffset = 0,
+        onClick = function()
+            local _, class = UnitClass("player")
+            local classColor = RAID_CLASS_COLORS[class]
+            ringOutlineColor = { r = classColor.r, g = classColor.g, b = classColor.b }
+            GetSpecDB().ringColor = { r = classColor.r, g = classColor.g, b = classColor.b }
+            SaveSpecSettings()
+            UpdateRingOutlineColor(classColor.r, classColor.g, classColor.b)
+            OptionsPanel:UpdateColorPicker(panel, "ringOutlineColor", classColor.r, classColor.g, classColor.b)
+        end
+    })
     -- Outline Thickness Slider
     local ringOutlineSizeSlider = OptionsPanel:AddSlider(panel, {
         key = "ringOutlineSize",
         name = "CursorRingOutlineSizeSlider",
         label = "Outline Thickness",
-        min = 3,
-        max = 8,
-        step = 0.5,
+        min = 2,
+        max = 4,
+        step = 1,
         default = specDB.ringOutlineSize or 4,
         lowText = "Thin",
         highText = "Thick",
@@ -1180,28 +1227,6 @@ local function CreateOptionsPanel()
         end
         OptionsPanel:UpdateDropdown(panel, "castStyle", currentCastStyle, displayText)
     end
-
-    -- Reset Button (continues vertical flow from Cast Color)
-    local resetButton = OptionsPanel:AddButton(panel, {
-        key = "resetColor",
-        text = "Reset",
-        width = 60,
-        height = 25,
-        anchor = ringColorLabel,
-        point = "LEFT",
-        relativePoint = "LEFT",
-        xOffset = 140,
-        yOffset = 0,
-        onClick = function()
-            local _, class = UnitClass("player")
-            local classColor = RAID_CLASS_COLORS[class]
-            ringColor = { r = classColor.r, g = classColor.g, b = classColor.b }
-            GetSpecDB().ringColor = { r = classColor.r, g = classColor.g, b = classColor.b }
-            SaveSpecSettings()
-            UpdateRingColor(classColor.r, classColor.g, classColor.b)
-            OptionsPanel:UpdateColorPicker(panel, "ringColor", classColor.r, classColor.g, classColor.b)
-        end
-    })
 
     -- Mouse Trail Checkbox (continues vertical flow)
     local mouseTrailCheckbox = OptionsPanel:AddCheckbox(panel, {
@@ -1415,6 +1440,8 @@ local function CreateOptionsPanel()
 				UpdateMouseTrail(mouseTrail)
 				UpdateRingVisibility()
 				UpdateMouseTrailVisibility()
+				UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+				UpdateRingOutlineSize(ringOutlineSize)
 				
 				
 				-- Update UI controls directly
@@ -1459,6 +1486,8 @@ local function CreateOptionsPanel()
 			UpdateMouseTrail(mouseTrail)
 			UpdateRingVisibility()
 			UpdateMouseTrailVisibility()
+			UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+			UpdateRingOutlineSize(ringOutlineSize)
 			
 			-- Update UI controls directly
 			OptionsPanel:UpdateCheckbox(panel, "showOutOfCombat", showOutOfCombat)
@@ -1560,6 +1589,8 @@ local function CreateOptionsPanel()
 				UpdateMouseTrail(mouseTrail)
 				UpdateRingVisibility()
 				UpdateMouseTrailVisibility()
+				UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+				UpdateRingOutlineSize(ringOutlineSize)
 				
 				-- Update UI controls directly
 				OptionsPanel:UpdateCheckbox(panel, "showOutOfCombat", showOutOfCombat)
@@ -1731,7 +1762,11 @@ addon:SetScript("OnEvent", function(self,event,...)
         if castFill then
             castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture))
 			castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
-        end        
+        end
+		if ringOutline then
+            ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(ringTexture))
+            ringOutline:SetVertexColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b, 1)
+        end
     elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED_INDOORS" or event=="ZONE_CHANGED" then
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
