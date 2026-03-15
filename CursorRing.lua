@@ -822,7 +822,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -20,
+        yOffset = -16,
         onClick = function(checked)
             showOutOfCombat = checked
             GetSpecDB().showOutOfCombat = showOutOfCombat
@@ -882,7 +882,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -30,
+        yOffset = -16,
         onValueChanged = function(value)
             ringSize = value
             GetSpecDB().ringSize = ringSize
@@ -1056,7 +1056,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -20,
+        yOffset = -8,
         onClick = function(checked)
             noDot = checked
             GetSpecDB().noDot = noDot
@@ -1074,7 +1074,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -20,
+        yOffset = -48,
         onClick = function(checked)
             ringOutlineEnabled = checked
             GetSpecDB().ringOutlineEnabled = ringOutlineEnabled
@@ -1095,7 +1095,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -20,
+        yOffset = -8,
         onColorChanged = function(r, g, b)
             ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b = r, g, b
             GetSpecDB().ringOutlineColor = { r = r, g = g, b = b }
@@ -1149,7 +1149,7 @@ local function CreateOptionsPanel()
         end
     })
 	
-    -- Cast Colour Picker (continues vertical flow from Centre Dot Checkbox)
+    -- Cast Colour Picker
     local castColorData = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorButton, castColorTexture, castColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "castColor",
@@ -1161,7 +1161,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -40,
+        yOffset = -32,
         onColorChanged = function(r, g, b)
             castColor.r, castColor.g, castColor.b = r, g, b
             GetSpecDB().castColor = { r = r, g = g, b = b }
@@ -1228,7 +1228,7 @@ local function CreateOptionsPanel()
         OptionsPanel:UpdateDropdown(panel, "castStyle", currentCastStyle, displayText)
     end
 
-    -- Mouse Trail Checkbox (continues vertical flow)
+    -- Mouse Trail Checkbox
     local mouseTrailCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "mouseTrail",
         label = "Enable Mouse Trail",
@@ -1237,7 +1237,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -20,
+        yOffset = -32,
         onClick = function(checked)
             mouseTrail = checked
             GetSpecDB().mouseTrail = mouseTrail
@@ -1275,7 +1275,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -20,
+        yOffset = -8,
         onColorChanged = function(r, g, b)
             trailColor.r, trailColor.g, trailColor.b = r, g, b
             GetSpecDB().trailColor = { r = r, g = g, b = b }
@@ -1318,7 +1318,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -40,
+        yOffset = -24,
         onValueChanged = function(value)
             trailFadeTime = value
             GetSpecDB().trailFadeTime = trailFadeTime
@@ -1408,7 +1408,7 @@ local function CreateOptionsPanel()
 
 	-- Profile Selection Dropdown
 	local profileSelectLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-	profileSelectLabel:SetPoint("TOPLEFT", profileNameLabel, "BOTTOMLEFT", 0, -40)
+	profileSelectLabel:SetPoint("TOPLEFT", profileNameLabel, "BOTTOMLEFT", 0, -24)
 	profileSelectLabel:SetText("Load Profile:")
 
 	local function GetProfileOptions()
