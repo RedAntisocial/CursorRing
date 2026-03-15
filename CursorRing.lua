@@ -19,6 +19,10 @@ local mouseTrail, mouseTrailActive, trailFadeTime, trailColorButton, sparkleTrai
 local trailColor = { r = 1, g = 1, b = 1 }
 local sparkleColor = { r = 1, g = 1, b = 1 }
 local noDot
+local ringOutline
+local ringOutlineEnabled = false
+local ringOutlineSize = 4
+local ringOutlineColor = { r = 1, g = 1, b = 1 }
 local profileManager
 local panelLoaded = false
 local trailBuffer = {}
@@ -49,6 +53,8 @@ local DEFAULTS = {
     trailFadeTime = 1.0,
     sparkleTrail = false,
     sparkleMultiplier = 1.0,
+	ringOutlineEnabled = false,
+    ringOutlineSize = 4,
 }
 
 -- Outer Ring Options
@@ -83,7 +89,7 @@ local function InitializeProfileManager()
             "ringEnabled", "castEnabled", "ringSize", "ringColor", "ringTexture",
             "castColor", "castStyle", "showOutOfCombat", "combatAlpha", "outOfCombatAlpha",
             "mouseTrail", "sparkleTrail", "trailFadeTime", "trailColor", "sparkleColor",
-            "sparkleMultiplier", "noDot"
+            "sparkleMultiplier", "noDot", "ringOutlineEnabled", "ringOutlineSize", "ringOutlineColor"
         },
         onProfileChanged = function(profileName)
         end
@@ -109,7 +115,10 @@ local function GetCurrentSettings()
         trailColor = { r = trailColor.r, g = trailColor.g, b = trailColor.b },
         sparkleColor = { r = sparkleColor.r, g = sparkleColor.g, b = sparkleColor.b },
         sparkleMultiplier = sparkleMultiplier,
-        noDot = noDot
+        noDot = noDot,
+		ringOutlineEnabled = ringOutlineEnabled,
+        ringOutlineSize = ringOutlineSize,
+        ringOutlineColor = { r = ringOutlineColor.r, g = ringOutlineColor.g, b = ringOutlineColor.b },
     }
 	
 	if debugMode then
@@ -180,6 +189,12 @@ local function ApplySettings(settings)
         ringColor.r, ringColor.g, ringColor.b = settings.ringColor.r, settings.ringColor.g, settings.ringColor.b
     end
     noDot = settings.noDot or DEFAULTS.noDot
+
+	ringOutlineEnabled = settings.ringOutlineEnabled or false
+    ringOutlineSize = settings.ringOutlineSize or DEFAULTS.ringOutlineSize
+    if settings.ringOutlineColor then
+        ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b = settings.ringOutlineColor.r, settings.ringOutlineColor.g, settings.ringOutlineColor.b
+    end
 
     showOutOfCombat = settings.showOutOfCombat ~= false
     combatAlpha = settings.combatAlpha or DEFAULTS.combatAlpha
@@ -286,6 +301,9 @@ local function LoadSpecSettings()
         sparkleColor = { r = 1, g = 1, b = 1 }
         sparkleMultiplier = DEFAULTS.sparkleMultiplier
         noDot = DEFAULTS.noDot
+		ringOutlineEnabled = DEFAULTS.ringOutlineEnabled
+        ringOutlineSize = DEFAULTS.ringOutlineSize
+        ringOutlineColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
         
         -- Save defaults
         profileManager:SaveSettings(GetCurrentSettings())
@@ -323,6 +341,27 @@ local function UpdateRingSize(size)
     SaveSpecSettings()
     if ring and ring:GetParent() then
         ring:GetParent():SetSize(ringSize, ringSize)
+		if ringOutline then
+			ringOutline:SetSize(ringSize + ringOutlineSize, ringSize + ringOutlineSize)
+		end
+    end
+end
+
+local function UpdateRingOutlineColor(r, g, b)
+    ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b = r, g, b
+    GetSpecDB().ringOutlineColor = { r = r, g = g, b = b }
+    SaveSpecSettings()
+    if ringOutline then
+        ringOutline:SetVertexColor(r, g, b, 1)
+    end
+end
+
+local function UpdateRingOutlineSize(size)
+    ringOutlineSize = size
+    GetSpecDB().ringOutlineSize = size
+    SaveSpecSettings()
+    if ringOutline then
+        ringOutline:SetSize(ringSize + ringOutlineSize, ringSize + ringOutlineSize)
     end
 end
 
@@ -379,6 +418,9 @@ end
 local function UpdateRingTexture(textureFile)
     if ring then
         ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
+		if ringOutline then
+			ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
+		end
     end
     if castFill then
         castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(textureFile))
@@ -438,6 +480,9 @@ local function UpdateRingVisibility()
     if ring then
         local shouldShow = ringEnabled and ShouldShowAllowedByInstanceRules()
         ring:SetShown(shouldShow)
+		if ringOutline then
+            ringOutline:SetShown(ringOutlineEnabled and shouldShow)
+        end
         if shouldShow then
             local inCombat = InCombatLockdown()
             local inInst, t = IsInInstance()
@@ -446,6 +491,9 @@ local function UpdateRingVisibility()
             -- Use combat alpha if in actual combat or instance
             local alpha = (inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
             ring:SetAlpha(alpha)
+			if ringOutline then
+                ringOutline:SetAlpha(alpha)
+            end
         end
     end
 end
@@ -460,6 +508,13 @@ local function UpdateMouseTrailVisibility()
 		if point.tex then point.tex:SetAlpha(mouseTrailActive and alpha or 0) end
 		if point.sparkle then point.sparkle:SetAlpha(mouseTrailActive and alpha or 0) end
 	end
+end
+
+local function UpdateRingOutlineEnabled(enabled)
+    ringOutlineEnabled = enabled
+    GetSpecDB().ringOutlineEnabled = enabled
+    SaveSpecSettings()
+    UpdateRingVisibility()
 end
 
 -- Spec specific Ring Enabled setting update
@@ -494,6 +549,14 @@ local function CreateCursorRing()
     ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
     ring:SetAllPoints()
     ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
+	
+	-- Outline ring (rendered below ring on BACKGROUND layer)
+    ringOutline = f:CreateTexture(nil, "BACKGROUND")
+    ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
+    ringOutline:SetPoint("CENTER", f, "CENTER")
+    ringOutline:SetSize(ringSize + ringOutlineSize, ringSize + ringOutlineSize)
+    ringOutline:SetVertexColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b, 1)
+    ringOutline:SetShown(ringOutlineEnabled)
 
     -- Cast segments
     castSegments = {}
@@ -568,6 +631,9 @@ local function CreateCursorRing()
 			lastAlphaCheck = 0
 			if ring and ringEnabled and ShouldShowAllowedByInstanceRules() then
 				ring:SetAlpha(cursorAlpha)
+				if ringOutline and ringOutlineEnabled then
+                    ringOutline:SetAlpha(cursorAlpha)
+                end
 				-- Apply same alpha logic to cast fill
 				if castFill then
 					castFill:SetAlpha((castFill:GetAlpha() > 0) and cursorAlpha or 0)
@@ -973,6 +1039,69 @@ local function CreateOptionsPanel()
         end
     })
 
+	-- Outline Enable Checkbox
+    local ringOutlineCheckbox = OptionsPanel:AddCheckbox(panel, {
+        key = "ringOutlineEnabled",
+        label = "Enable Ring Outline",
+        default = specDB.ringOutlineEnabled or false,
+        anchor = ringColorLabel,
+        point = "TOPLEFT",
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -20,
+        onClick = function(checked)
+            ringOutlineEnabled = checked
+            GetSpecDB().ringOutlineEnabled = ringOutlineEnabled
+            SaveSpecSettings()
+            UpdateRingOutlineEnabled(ringOutlineEnabled)
+        end
+    })
+
+    -- Outline Color Picker
+    local outlineColorData = specDB.ringOutlineColor or { r = ringColor.r, g = ringColor.g, b = ringColor.b }
+    local ringOutlineColorButton, ringOutlineColorTexture, ringOutlineColorLabel = OptionsPanel:AddColorPicker(panel, {
+        key = "ringOutlineColor",
+        label = "Outline Color:",
+        r = outlineColorData.r,
+        g = outlineColorData.g,
+        b = outlineColorData.b,
+        anchor = ringOutlineCheckbox,
+        point = "TOPLEFT",
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -20,
+        onColorChanged = function(r, g, b)
+            ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b = r, g, b
+            GetSpecDB().ringOutlineColor = { r = r, g = g, b = b }
+            SaveSpecSettings()
+            UpdateRingOutlineColor(r, g, b)
+        end
+    })
+
+    -- Outline Thickness Slider
+    local ringOutlineSizeSlider = OptionsPanel:AddSlider(panel, {
+        key = "ringOutlineSize",
+        name = "CursorRingOutlineSizeSlider",
+        label = "Outline Thickness",
+        min = 3,
+        max = 8,
+        step = 0.5,
+        default = specDB.ringOutlineSize or 4,
+        lowText = "Thin",
+        highText = "Thick",
+        anchor = ringOutlineColorLabel,
+        point = "TOPLEFT",
+        relativePoint = "TOPLEFT",
+        xOffset = 280,
+        yOffset = 0,
+        onValueChanged = function(value)
+            ringOutlineSize = value
+            GetSpecDB().ringOutlineSize = ringOutlineSize
+            SaveSpecSettings()
+            UpdateRingOutlineSize(ringOutlineSize)
+        end
+    })
+	
     -- Cast Colour Picker (continues vertical flow from Centre Dot Checkbox)
     local castColorData = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorButton, castColorTexture, castColorLabel = OptionsPanel:AddColorPicker(panel, {
@@ -981,11 +1110,11 @@ local function CreateOptionsPanel()
         r = castColorData.r,
         g = castColorData.g,
         b = castColorData.b,
-        anchor = ringColorLabel,
+        anchor = ringOutlineColorLabel,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -64,
+        yOffset = -40,
         onColorChanged = function(r, g, b)
             castColor.r, castColor.g, castColor.b = r, g, b
             GetSpecDB().castColor = { r = r, g = g, b = b }
@@ -1287,6 +1416,7 @@ local function CreateOptionsPanel()
 				UpdateRingVisibility()
 				UpdateMouseTrailVisibility()
 				
+				
 				-- Update UI controls directly
 				OptionsPanel:UpdateCheckbox(panel, "showOutOfCombat", showOutOfCombat)
 				OptionsPanel:UpdateCheckbox(panel, "ringEnabled", ringEnabled)
@@ -1303,6 +1433,9 @@ local function CreateOptionsPanel()
 				OptionsPanel:UpdateColorPicker(panel, "castColor", castColor.r, castColor.g, castColor.b)
 				OptionsPanel:UpdateColorPicker(panel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
 				OptionsPanel:UpdateColorPicker(panel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+				OptionsPanel:UpdateCheckbox(panel, "ringOutlineEnabled", ringOutlineEnabled)
+                OptionsPanel:UpdateColorPicker(panel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+                OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
 				
 				cursorRingOptionsPanel.RefreshProfileDropdown()
 				print("CursorRing: Loaded profile '" .. value .. "'")
@@ -1343,6 +1476,9 @@ local function CreateOptionsPanel()
 			OptionsPanel:UpdateColorPicker(panel, "castColor", castColor.r, castColor.g, castColor.b)
 			OptionsPanel:UpdateColorPicker(panel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
 			OptionsPanel:UpdateColorPicker(panel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+			OptionsPanel:UpdateCheckbox(panel, "ringOutlineEnabled", ringOutlineEnabled)
+            OptionsPanel:UpdateColorPicker(panel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+            OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
 			
 			cursorRingOptionsPanel.RefreshProfileDropdown()
 			print("CursorRing: Using character settings")
@@ -1407,6 +1543,9 @@ local function CreateOptionsPanel()
 				sparkleColor = { r = 1, g = 1, b = 1 }
 				sparkleMultiplier = DEFAULTS.sparkleMultiplier
 				noDot = DEFAULTS.noDot
+				ringOutlineEnabled = DEFAULTS.ringOutlineEnabled
+                ringOutlineSize = DEFAULTS.ringOutlineSize
+                ringOutlineColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
 				
 				-- Save defaults to character settings
 				profileManager:SaveSettings(GetCurrentSettings())
@@ -1438,6 +1577,10 @@ local function CreateOptionsPanel()
 				OptionsPanel:UpdateColorPicker(panel, "castColor", castColor.r, castColor.g, castColor.b)
 				OptionsPanel:UpdateColorPicker(panel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
 				OptionsPanel:UpdateColorPicker(panel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+				OptionsPanel:UpdateCheckbox(panel, "ringOutlineEnabled", ringOutlineEnabled)
+                OptionsPanel:UpdateColorPicker(panel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+                OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
+				
 				
 				-- Refresh dropdown
 				cursorRingOptionsPanel.RefreshProfileDropdown()
@@ -1510,6 +1653,9 @@ local function UpdateOptionsPanel()
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", sparkleTrail or false)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", noDot or false)
+	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringOutlineEnabled", ringOutlineEnabled or false)
+    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringOutlineSize", ringOutlineSize or 4)
 
     -- Update color pickers
 	OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
