@@ -830,44 +830,8 @@ local function CreateOptionsPanel()
             UpdateShowOutOfCombat(showOutOfCombat)
         end
     })
-
-    -- Enable Ring Checkbox
-    local ringEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
-        key = "ringEnabled",
-        label = "Enable Cursor Ring",
-        default = specDB.ringEnabled ~= false,
-        anchor = showOutOfCombatCheckbox,
-        point = "TOPLEFT",
-        relativePoint = "BOTTOMLEFT",
-        xOffset = 0,
-        yOffset = -8,
-        onClick = function(checked)
-            ringEnabled = checked
-            _G.ringEnabled = ringEnabled
-            GetSpecDB().ringEnabled = ringEnabled
-            SaveSpecSettings()
-            UpdateRingVisibility()
-        end
-    })
 	
-	-- Enable Cast Ring Checkbox
-    local castEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
-        key = "castEnabled",
-        label = "Enable Cast Effect",
-        default = specDB.castEnabled ~= false,
-        anchor = ringEnabledCheckbox,
-        point = "TOPLEFT",
-        relativePoint = "TOPLEFT",
-        xOffset = 280,
-        yOffset = 0,
-        onClick = function(checked)
-            castEnabled = checked
-            GetSpecDB().castEnabled = castEnabled
-            SaveSpecSettings()
-        end
-    })
-
-    -- Ring Size Slider
+   -- Ring Size Slider
     local ringSizeSlider = OptionsPanel:AddSlider(panel, {
         key = "ringSize",
         name = "CursorRingSizeSlider",
@@ -878,7 +842,7 @@ local function CreateOptionsPanel()
         default = specDB.ringSize or 48,
         lowText = "Small",
         highText = "Large",
-        anchor = ringEnabledCheckbox,
+        anchor = showOutOfCombatCheckbox,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
@@ -945,6 +909,42 @@ local function CreateOptionsPanel()
         end
     })
 	
+    -- Enable Ring Checkbox
+    local ringEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
+        key = "ringEnabled",
+        label = "Enable Cursor/Cast Ring",
+        default = specDB.ringEnabled ~= false,
+        anchor = ringSizeSlider,
+        point = "TOPLEFT",
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -8,
+        onClick = function(checked)
+            ringEnabled = checked
+            _G.ringEnabled = ringEnabled
+            GetSpecDB().ringEnabled = ringEnabled
+            SaveSpecSettings()
+            UpdateRingVisibility()
+        end
+    })
+	
+	-- Enable Cast Ring Checkbox
+    local castEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
+        key = "castEnabled",
+        label = "Enable Cast Effect",
+        default = specDB.castEnabled ~= false,
+        anchor = ringEnabledCheckbox,
+        point = "TOPLEFT",
+        relativePoint = "TOPLEFT",
+        xOffset = 300,
+        yOffset = 0,
+        onClick = function(checked)
+            castEnabled = checked
+            GetSpecDB().castEnabled = castEnabled
+            SaveSpecSettings()
+        end
+    })
+	
     -- Ring Color Picker
     local ringColorData = specDB.ringColor or { r = 1, g = 1, b = 1 }
     local ringColorButton, ringColorTexture, ringColorLabel = OptionsPanel:AddColorPicker(panel, {
@@ -953,7 +953,7 @@ local function CreateOptionsPanel()
         r = ringColorData.r,
         g = ringColorData.g,
         b = ringColorData.b,
-        anchor = ringSizeSlider,
+        anchor = ringEnabledCheckbox,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
@@ -987,7 +987,8 @@ local function CreateOptionsPanel()
             OptionsPanel:UpdateColorPicker(panel, "ringColor", classColor.r, classColor.g, classColor.b)
         end
     })
-    -- Ring Texture Dropdown (positioned to the right of Ring Color)
+    
+	-- Ring Texture Dropdown (positioned to the right of Ring Color)
     local currentTexture = specDB.ringTexture or "ring.tga"
     local ringTextureOptions = {}
     for _, opt in ipairs(outerRingOptions) do
@@ -1003,9 +1004,9 @@ local function CreateOptionsPanel()
         options = ringTextureOptions,
         anchor = ringColorLabel,
         point = "TOPLEFT",
-        relativePoint = "TOPLEFT",
-        xOffset = 280,
-        yOffset = 0,
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -16,
         onSelect = function(value)
             currentTexture = value
             ringTexture = value
@@ -1056,7 +1057,7 @@ local function CreateOptionsPanel()
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -8,
+        yOffset = -16,
         onClick = function(checked)
             noDot = checked
             GetSpecDB().noDot = noDot
@@ -1064,17 +1065,65 @@ local function CreateOptionsPanel()
             UpdateRingTexture(ringTexture)
         end
     })
+	
+    -- Cast Colour Picker
+    local castColorData = specDB.castColor or { r = 1, g = 1, b = 1 }
+    local castColorButton, castColorTexture, castColorLabel = OptionsPanel:AddColorPicker(panel, {
+        key = "castColor",
+        label = "Cast Effect Color:",
+        r = castColorData.r,
+        g = castColorData.g,
+        b = castColorData.b,
+        anchor = ringColorLabel,
+        point = "TOPLEFT",
+        relativePoint = "TOPLEFT",
+        xOffset = 300,
+        yOffset = 0,
+        onColorChanged = function(r, g, b)
+            castColor.r, castColor.g, castColor.b = r, g, b
+            GetSpecDB().castColor = { r = r, g = g, b = b }
+            SaveSpecSettings()
+            UpdateCastColor(r, g, b)
+        end
+    })
 
+    -- Cast Style Dropdown (positioned to the right of Cast Color)
+    currentCastStyle = specDB.castStyle or "ring"
+    local castStyleOptions = {
+        { text = "Ring", value = "ring" },
+        { text = "Fill", value = "fill" },
+        { text = "Wedge", value = "wedge" },
+    }
+
+    local styleDropdown, styleLabel = OptionsPanel:AddDropdown(panel, {
+        key = "castStyle",
+        label = "Cast Effect Style:",
+        labelOffset = 100,
+        width = 150,
+        default = currentCastStyle,
+        options = castStyleOptions,
+        anchor = castColorLabel,
+        point = "TOPLEFT",
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -16,
+        onSelect = function(value)
+            currentCastStyle = value
+            GetSpecDB().castStyle = value
+            SaveSpecSettings()
+            UpdateCastStyle(value)
+        end
+    })
 	-- Outline Enable Checkbox
     local ringOutlineCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "ringOutlineEnabled",
         label = "Enable Ring Outline",
         default = specDB.ringOutlineEnabled or false,
-        anchor = ringColorLabel,
+        anchor = noDotCheckbox,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -48,
+        yOffset = -8,
         onClick = function(checked)
             ringOutlineEnabled = checked
             GetSpecDB().ringOutlineEnabled = ringOutlineEnabled
@@ -1138,63 +1187,14 @@ local function CreateOptionsPanel()
         highText = "Thick",
         anchor = ringOutlineColorLabel,
         point = "TOPLEFT",
-        relativePoint = "TOPLEFT",
-        xOffset = 280,
-        yOffset = 0,
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -20,
         onValueChanged = function(value)
             ringOutlineSize = value
             GetSpecDB().ringOutlineSize = ringOutlineSize
             SaveSpecSettings()
             UpdateRingOutlineSize(ringOutlineSize)
-        end
-    })
-	
-    -- Cast Colour Picker
-    local castColorData = specDB.castColor or { r = 1, g = 1, b = 1 }
-    local castColorButton, castColorTexture, castColorLabel = OptionsPanel:AddColorPicker(panel, {
-        key = "castColor",
-        label = "Cast Effect Color:",
-        r = castColorData.r,
-        g = castColorData.g,
-        b = castColorData.b,
-        anchor = ringOutlineColorLabel,
-        point = "TOPLEFT",
-        relativePoint = "BOTTOMLEFT",
-        xOffset = 0,
-        yOffset = -32,
-        onColorChanged = function(r, g, b)
-            castColor.r, castColor.g, castColor.b = r, g, b
-            GetSpecDB().castColor = { r = r, g = g, b = b }
-            SaveSpecSettings()
-            UpdateCastColor(r, g, b)
-        end
-    })
-
-    -- Cast Style Dropdown (positioned to the right of Cast Color)
-    currentCastStyle = specDB.castStyle or "ring"
-    local castStyleOptions = {
-        { text = "Ring", value = "ring" },
-        { text = "Fill", value = "fill" },
-        { text = "Wedge", value = "wedge" },
-    }
-
-    local styleDropdown, styleLabel = OptionsPanel:AddDropdown(panel, {
-        key = "castStyle",
-        label = "Cast Effect Style:",
-        labelOffset = 100,
-        width = 150,
-        default = currentCastStyle,
-        options = castStyleOptions,
-        anchor = castColorLabel,
-        point = "TOPLEFT",
-        relativePoint = "TOPLEFT",
-        xOffset = 280,
-        yOffset = 0,
-        onSelect = function(value)
-            currentCastStyle = value
-            GetSpecDB().castStyle = value
-            SaveSpecSettings()
-            UpdateCastStyle(value)
         end
     })
 
@@ -1233,11 +1233,11 @@ local function CreateOptionsPanel()
         key = "mouseTrail",
         label = "Enable Mouse Trail",
         default = specDB.mouseTrail or false,
-        anchor = castColorLabel,
+        anchor = ringOutlineSizeSlider,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
         xOffset = 0,
-        yOffset = -32,
+        yOffset = -24,
         onClick = function(checked)
             mouseTrail = checked
             GetSpecDB().mouseTrail = mouseTrail
@@ -1246,7 +1246,7 @@ local function CreateOptionsPanel()
         end
     })
 
-    -- Sparkle Trail Checkbox (positioned to the right of Mouse Trail)
+    -- Sparkle Trail Checkbox
     local sparkleCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "sparkleTrail",
         label = "Enable Sparkle Effect on Mouse Trail",
@@ -1254,7 +1254,7 @@ local function CreateOptionsPanel()
         anchor = mouseTrailCheckbox,
         point = "TOPLEFT",
         relativePoint = "TOPLEFT",
-        xOffset = 280,
+        xOffset = 300,
         yOffset = 0,
         onClick = function(checked)
             sparkleTrail = checked
@@ -1263,7 +1263,7 @@ local function CreateOptionsPanel()
         end
     })
 
-    -- Mouse Trail Color Picker (continues vertical flow from Mouse Trail)
+    -- Mouse Trail Color Picker
     local trailColorData = specDB.trailColor or { r = 1, g = 1, b = 1 }
     local trailColorButton, trailColorTexture, trailColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "trailColor",
@@ -1283,7 +1283,7 @@ local function CreateOptionsPanel()
         end
     })
 
-    -- Sparkle Color Picker (positioned to the right of Mouse Trail Color)
+    -- Sparkle Color Picker
     local sparkleColorData = specDB.sparkleColor or { r = 1, g = 1, b = 1 }
     local sparkleColorButton, sparkleColorTexture, sparkleColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "sparkleColor",
@@ -1303,7 +1303,7 @@ local function CreateOptionsPanel()
         end
     })
 
-    -- Mouse Trail Fade Slider (continues vertical flow from Mouse Trail Color)
+    -- Mouse Trail Fade Slider
     local trailFadeSlider = OptionsPanel:AddSlider(panel, {
         key = "trailFadeTime",
         name = "CursorRingTrailFadeTimeSlider",
@@ -1326,7 +1326,7 @@ local function CreateOptionsPanel()
         end
     })
 
-    -- Sparkle Size Slider (continues vertical flow)
+    -- Sparkle Size Slider
     local sparkleSlider = OptionsPanel:AddSlider(panel, {
         key = "sparkleMultiplier",
         name = "CursorRingSparkleSizeSlider",
