@@ -1,8 +1,19 @@
-## Interface: 120001
+## Interface: 120001, 120005
 ## Title: Cursor Ring
 ## Notes: Puts a persistent class-coloured or preference-coloured ring and cast-ring around your mouse cursor.
 ## Author: Periago - Dalaran
-## Version: 1.3.1
+## Version: 1.3.2
+## Category: User Interface
+## Category-deDE: Benutzerinterface
+## Category-esES: Interfaz de usuario
+## Category-esMX: Interfaz de usuario
+## Category-frFR: Interface utilisateur
+## Category-itIT: Interfaccia utente
+## Category-koKR: 사용자 인터페이스
+## Category-ptBR: Interface do usuário
+## Category-ruRU: Интерфейс пользователя
+## Category-zhCN: 用户界面
+## Category-zhTW: 使用者介面
 ## IconTexture: Interface\Icons\inv_ring_oribos_01_copper
 ## X-Curse-Project-ID: 1376245
 ## X-WoWI-ID: 
