@@ -122,7 +122,7 @@ function ProfileManager:SaveToProfile(name, settings)
 	end 
     self:SetActiveProfile(name)
 	
-    print("|cFF00FF00CursorRing:|r Profile '" .. name .. "' saved successfully.")
+    print(string.format(CursorRing_L["MSG_PM_SAVED"], name))
 end
 
 -- Load settings from a profile
@@ -259,7 +259,7 @@ function ProfileManager:DeleteProfile(profileName)
         end
     end
     
-    print("|cFFFF0000CursorRing:|r Profile '" .. profileName .. "' deleted.")
+    print(string.format(CursorRing_L["MSG_PM_DELETED"], profileName))
 end
 
 -- Check if a profile exists

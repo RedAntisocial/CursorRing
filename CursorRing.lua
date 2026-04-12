@@ -59,12 +59,12 @@ local DEFAULTS = {
 
 -- Outer Ring Options
 local outerRingOptions = {
-    { name = "Ring", file = "ring.tga", style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
-    { name = "Thin Ring",   file = "thin_ring.tga", style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
-    { name = "Star",    file = "star.tga", style = "ring", supportedStyles = {"fill"} },
-    { name = "Hex",   file = "hex.tga", style = "ring", supportedStyles = {"fill"} },
-    { name = "Hex 90",   file = "hex90.tga", style = "ring", supportedStyles = {"fill"} },
-    -- { name = "Heart",   file = "heart.tga", style = "ring", supportedStyles = {"ring", "fill"} },
+    { name = CursorRing_L["SHAPE_RING"],      file = "ring.tga",    style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
+    { name = CursorRing_L["SHAPE_THIN_RING"], file = "thin_ring.tga", style = "ring", supportedStyles = {"ring", "fill", "wedge"} },
+    { name = CursorRing_L["SHAPE_STAR"],      file = "star.tga",    style = "ring", supportedStyles = {"fill"} },
+    { name = CursorRing_L["SHAPE_HEX"],       file = "hex.tga",     style = "ring", supportedStyles = {"fill"} },
+    { name = CursorRing_L["SHAPE_HEX90"],     file = "hex90.tga",   style = "ring", supportedStyles = {"fill"} },
+    -- { name = CursorRing_L["SHAPE_HEART"],  file = "heart.tga",   style = "ring", supportedStyles = {"ring", "fill"} },
 }
 
 -- CLAMP!!! I SAID CLAMP!!!!
@@ -315,7 +315,7 @@ local function LoadSpecSettings()
         if not profileManager:ProfileExists(autoProfileName) then
             profileManager:SaveToProfile(autoProfileName, GetCurrentSettings())
             profileManager:SetActiveProfile(autoProfileName)
-            print("CursorRing: Created default profile '" .. autoProfileName .. "'")
+            print(string.format(CursorRing_L["MSG_CREATED_PROFILE"], autoProfileName))
         end
     end
 end
@@ -808,7 +808,7 @@ local function CreateOptionsPanel()
     local panel = OptionsPanel:NewPanel({
         name = "CursorRing",
         displayName = "CursorRing",
-        title = "CursorRing Settings"
+        title = CursorRing_L["PANEL_TITLE"]
     })
 
     cursorRingOptionsPanel = panel
@@ -816,7 +816,7 @@ local function CreateOptionsPanel()
     -- Show Outside of Instance Checkbox - Formerly Show Outside of Instances/Combat, but the alpha sliders take care of that. Let this be a lesson on variable naming (that i will inevitably never learn)
     local showOutOfCombatCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "showOutOfCombat",
-        label = "Show Ring and Mouse Trail outside of instances",
+        label = CursorRing_L["SHOW_OUT_OF_COMBAT"],
         default = specDB.showOutOfCombat or false, -- variable has to remain showOutOfCombat so I don't break the stored values.
         anchor = panel.title,
         point = "TOPLEFT",
@@ -835,13 +835,13 @@ local function CreateOptionsPanel()
     local ringSizeSlider = OptionsPanel:AddSlider(panel, {
         key = "ringSize",
         name = "CursorRingSizeSlider",
-        label = "Ring Size",
+        label = CursorRing_L["RING_SIZE"],
         min = 16,
         max = 256,
         step = 1,
         default = specDB.ringSize or 48,
-        lowText = "Small",
-        highText = "Large",
+        lowText = CursorRing_L["SIZE_SMALL"],
+        highText = CursorRing_L["SIZE_LARGE"],
         anchor = showOutOfCombatCheckbox,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
@@ -859,13 +859,13 @@ local function CreateOptionsPanel()
     local combatAlphaSlider = OptionsPanel:AddSlider(panel, {
         key = "combatAlpha",
         name = "CursorRingCombatAlphaSlider",
-        label = "In Combat Opacity",
+        label = CursorRing_L["COMBAT_OPACITY"],
         min = 0,
         max = 1,
         step = 0.05,
         default = specDB.combatAlpha or 1.0,
-        lowText = "0%",
-        highText = "100%",
+        lowText = CursorRing_L["PCT_0"],
+        highText = CursorRing_L["PCT_100"],
         anchor = ringSizeSlider,
         point = "TOPLEFT",
         relativePoint = "TOPLEFT",
@@ -886,13 +886,13 @@ local function CreateOptionsPanel()
     local outOfCombatAlphaSlider = OptionsPanel:AddSlider(panel, {
         key = "outOfCombatAlpha",
         name = "CursorRingOutOfCombatAlphaSlider",
-        label = "Out of Combat Opacity",
+        label = CursorRing_L["OUT_OF_COMBAT_OPACITY"],
         min = 0,
         max = 1,
         step = 0.05,
         default = specDB.outOfCombatAlpha or 1.0,
-        lowText = "0%",
-        highText = "100%",
+        lowText = CursorRing_L["PCT_0"],
+        highText = CursorRing_L["PCT_100"],
         anchor = combatAlphaSlider,
         point = "TOPLEFT",
         relativePoint = "TOPLEFT",
@@ -912,7 +912,7 @@ local function CreateOptionsPanel()
     -- Enable Ring Checkbox
     local ringEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "ringEnabled",
-        label = "Enable Cursor/Cast Ring",
+        label = CursorRing_L["ENABLE_RING"],
         default = specDB.ringEnabled ~= false,
         anchor = ringSizeSlider,
         point = "TOPLEFT",
@@ -931,7 +931,7 @@ local function CreateOptionsPanel()
 	-- Enable Cast Ring Checkbox
     local castEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "castEnabled",
-        label = "Enable Cast Effect",
+        label = CursorRing_L["ENABLE_CAST"],
         default = specDB.castEnabled ~= false,
         anchor = ringEnabledCheckbox,
         point = "TOPLEFT",
@@ -949,7 +949,7 @@ local function CreateOptionsPanel()
     local ringColorData = specDB.ringColor or { r = 1, g = 1, b = 1 }
     local ringColorButton, ringColorTexture, ringColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "ringColor",
-        label = "Ring Color:",
+        label = CursorRing_L["RING_COLOR"],
         r = ringColorData.r,
         g = ringColorData.g,
         b = ringColorData.b,
@@ -969,7 +969,7 @@ local function CreateOptionsPanel()
     -- Reset Button - ringColor
     local resetButton = OptionsPanel:AddButton(panel, {
         key = "resetColor",
-        text = "Reset",
+        text = CursorRing_L["RESET"],
         width = 60,
         height = 25,
         anchor = ringColorLabel,
@@ -997,7 +997,7 @@ local function CreateOptionsPanel()
 
     local ringTextureDropdown, ringTextureLabel = OptionsPanel:AddDropdown(panel, {
         key = "ringTexture",
-        label = "Ring Shape:",
+        label = CursorRing_L["RING_SHAPE"],
         labelOffset = 100,
         width = 150,
         default = currentTexture,
@@ -1049,7 +1049,7 @@ local function CreateOptionsPanel()
     -- Remove Centre Dot Checkbox (continues vertical flow from Ring Colour)
      local noDotCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "noDot",
-        label = "Remove Center Dot",
+        label = CursorRing_L["REMOVE_CENTER_DOT"],
 		labelOffset = 100,
 		width = 150,
         default = specDB.noDot or false,
@@ -1070,7 +1070,7 @@ local function CreateOptionsPanel()
     local castColorData = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorButton, castColorTexture, castColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "castColor",
-        label = "Cast Effect Color:",
+        label = CursorRing_L["CAST_COLOR"],
         r = castColorData.r,
         g = castColorData.g,
         b = castColorData.b,
@@ -1090,14 +1090,14 @@ local function CreateOptionsPanel()
     -- Cast Style Dropdown (positioned to the right of Cast Color)
     currentCastStyle = specDB.castStyle or "ring"
     local castStyleOptions = {
-        { text = "Ring", value = "ring" },
-        { text = "Fill", value = "fill" },
-        { text = "Wedge", value = "wedge" },
+        { text = CursorRing_L["STYLE_RING"],  value = "ring" },
+        { text = CursorRing_L["STYLE_FILL"],  value = "fill" },
+        { text = CursorRing_L["STYLE_WEDGE"], value = "wedge" },
     }
 
     local styleDropdown, styleLabel = OptionsPanel:AddDropdown(panel, {
         key = "castStyle",
-        label = "Cast Effect Style:",
+        label = CursorRing_L["CAST_STYLE"],
         labelOffset = 100,
         width = 150,
         default = currentCastStyle,
@@ -1117,7 +1117,7 @@ local function CreateOptionsPanel()
 	-- Outline Enable Checkbox
     local ringOutlineCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "ringOutlineEnabled",
-        label = "Enable Ring Outline",
+        label = CursorRing_L["ENABLE_OUTLINE"],
         default = specDB.ringOutlineEnabled or false,
         anchor = noDotCheckbox,
         point = "TOPLEFT",
@@ -1136,7 +1136,7 @@ local function CreateOptionsPanel()
     local outlineColorData = specDB.ringOutlineColor or { r = ringColor.r, g = ringColor.g, b = ringColor.b }
     local ringOutlineColorButton, ringOutlineColorTexture, ringOutlineColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "ringOutlineColor",
-        label = "Outline Color:",
+        label = CursorRing_L["OUTLINE_COLOR"],
         r = outlineColorData.r,
         g = outlineColorData.g,
         b = outlineColorData.b,
@@ -1156,7 +1156,7 @@ local function CreateOptionsPanel()
 	-- Reset Button - ringOutlineColor
     local resetButton = OptionsPanel:AddButton(panel, {
         key = "resetOutlineColor",
-        text = "Reset",
+        text = CursorRing_L["RESET"],
         width = 60,
         height = 25,
         anchor = ringOutlineColorLabel,
@@ -1178,13 +1178,13 @@ local function CreateOptionsPanel()
     local ringOutlineSizeSlider = OptionsPanel:AddSlider(panel, {
         key = "ringOutlineSize",
         name = "CursorRingOutlineSizeSlider",
-        label = "Outline Thickness",
+        label = CursorRing_L["OUTLINE_THICKNESS"],
         min = 2,
         max = 4,
         step = 1,
         default = specDB.ringOutlineSize or 4,
-        lowText = "Thin",
-        highText = "Thick",
+        lowText = CursorRing_L["THICKNESS_THIN"],
+        highText = CursorRing_L["THICKNESS_THICK"],
         anchor = ringOutlineColorLabel,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
@@ -1218,7 +1218,7 @@ local function CreateOptionsPanel()
             end
         end
         
-        local displayText = "Ring"
+        local displayText = CursorRing_L["STYLE_RING"]
         for _, opt in ipairs(castStyleOptions) do
             if opt.value == currentCastStyle then
                 displayText = opt.text
@@ -1231,7 +1231,7 @@ local function CreateOptionsPanel()
     -- Mouse Trail Checkbox
     local mouseTrailCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "mouseTrail",
-        label = "Enable Mouse Trail",
+        label = CursorRing_L["ENABLE_TRAIL"],
         default = specDB.mouseTrail or false,
         anchor = ringOutlineSizeSlider,
         point = "TOPLEFT",
@@ -1249,7 +1249,7 @@ local function CreateOptionsPanel()
     -- Sparkle Trail Checkbox
     local sparkleCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "sparkleTrail",
-        label = "Enable Sparkle Effect on Mouse Trail",
+        label = CursorRing_L["ENABLE_SPARKLE"],
         default = specDB.sparkleTrail or false,
         anchor = mouseTrailCheckbox,
         point = "TOPLEFT",
@@ -1267,7 +1267,7 @@ local function CreateOptionsPanel()
     local trailColorData = specDB.trailColor or { r = 1, g = 1, b = 1 }
     local trailColorButton, trailColorTexture, trailColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "trailColor",
-        label = "Mouse Trail Color:",
+        label = CursorRing_L["TRAIL_COLOR"],
         r = trailColorData.r,
         g = trailColorData.g,
         b = trailColorData.b,
@@ -1287,7 +1287,7 @@ local function CreateOptionsPanel()
     local sparkleColorData = specDB.sparkleColor or { r = 1, g = 1, b = 1 }
     local sparkleColorButton, sparkleColorTexture, sparkleColorLabel = OptionsPanel:AddColorPicker(panel, {
         key = "sparkleColor",
-        label = "Sparkle Color:",
+        label = CursorRing_L["SPARKLE_COLOR"],
         r = sparkleColorData.r,
         g = sparkleColorData.g,
         b = sparkleColorData.b,
@@ -1307,13 +1307,13 @@ local function CreateOptionsPanel()
     local trailFadeSlider = OptionsPanel:AddSlider(panel, {
         key = "trailFadeTime",
         name = "CursorRingTrailFadeTimeSlider",
-        label = "Mouse Trail Length",
+        label = CursorRing_L["TRAIL_LENGTH"],
         min = 0.1,
         max = 6.0,
         step = 0.1,
         default = specDB.trailFadeTime or 1.0,
-        lowText = "Short",
-        highText = "Long",
+        lowText = CursorRing_L["LENGTH_SHORT"],
+        highText = CursorRing_L["LENGTH_LONG"],
         anchor = trailColorLabel,
         point = "TOPLEFT",
         relativePoint = "BOTTOMLEFT",
@@ -1330,13 +1330,13 @@ local function CreateOptionsPanel()
     local sparkleSlider = OptionsPanel:AddSlider(panel, {
         key = "sparkleMultiplier",
         name = "CursorRingSparkleSizeSlider",
-        label = "Sparkle Size Multiplier",
+        label = CursorRing_L["SPARKLE_SIZE"],
         min = 0.3,
         max = 10.0,
         step = 0.1,
         default = specDB.sparkleMultiplier or 1.0,
-        lowText = "Small",
-        highText = "Huge",
+        lowText = CursorRing_L["SIZE_SMALL"],
+        highText = CursorRing_L["SIZE_LARGE"],
         anchor = trailFadeSlider,
         point = "TOPLEFT",
         relativePoint = "TOPLEFT",
@@ -1352,19 +1352,19 @@ local function CreateOptionsPanel()
     -- Profile Management Section
     local profileHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     profileHeader:SetPoint("TOPLEFT", trailFadeSlider, "BOTTOMLEFT", 0, -30)
-    profileHeader:SetText("Profile Management")
+    profileHeader:SetText(CursorRing_L["PROFILE_MANAGEMENT"])
 
     -- Active Profile Status
     local profileStatusLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     profileStatusLabel:SetPoint("TOPLEFT", profileHeader, "BOTTOMLEFT", 0, -10)
     local activeProfile = profileManager:GetActiveProfile()
-    local statusText = activeProfile and ("Active Profile: " .. activeProfile) or "Active Profile: None (Character Settings)"
+    local statusText = activeProfile and string.format(CursorRing_L["ACTIVE_PROFILE"], activeProfile) or CursorRing_L["ACTIVE_PROFILE_NONE"]
     profileStatusLabel:SetText(statusText)
 
     -- Profile Name Input
     local profileNameLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     profileNameLabel:SetPoint("TOPLEFT", profileStatusLabel, "BOTTOMLEFT", 0, -15)
-    profileNameLabel:SetText("Profile Name:")
+    profileNameLabel:SetText(CursorRing_L["PROFILE_NAME"])
 
     local profileNameInput = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
     profileNameInput:SetPoint("LEFT", profileNameLabel, "RIGHT", 10, 0)
@@ -1375,7 +1375,7 @@ local function CreateOptionsPanel()
     -- Save as Profile Button
     local saveProfileButton = OptionsPanel:AddButton(panel, {
         key = "saveProfile",
-        text = "Save as New Profile",
+        text = CursorRing_L["SAVE_PROFILE"],
         width = 150,
         height = 25,
         anchor = profileNameLabel,
@@ -1391,17 +1391,17 @@ local function CreateOptionsPanel()
                 profileManager:SetActiveProfile(newProfileName)
                 profileManager:SaveSettings(currentSettings)
                 profileNameInput:SetText("")
-                print("CursorRing: Saved settings to profile '" .. newProfileName .. "'")
+                print(string.format(CursorRing_L["MSG_SAVED_PROFILE"], newProfileName))
                 
                 -- Refresh the dropdown and status
                 if cursorRingOptionsPanel.RefreshProfileDropdown then
                     cursorRingOptionsPanel.RefreshProfileDropdown()
                 end
                 local activeProfile = profileManager:GetActiveProfile()
-                local statusText = activeProfile and ("Active Profile: " .. activeProfile) or "Active Profile: None (Character Settings)"
+                local statusText = activeProfile and string.format(CursorRing_L["ACTIVE_PROFILE"], activeProfile) or CursorRing_L["ACTIVE_PROFILE_NONE"]
                 profileStatusLabel:SetText(statusText)
             else
-                print("CursorRing: Please enter a profile name")
+                print(CursorRing_L["MSG_PLEASE_ENTER_NAME"])
             end
         end
     })
@@ -1409,10 +1409,10 @@ local function CreateOptionsPanel()
 	-- Profile Selection Dropdown
 	local profileSelectLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 	profileSelectLabel:SetPoint("TOPLEFT", profileNameLabel, "BOTTOMLEFT", 0, -24)
-	profileSelectLabel:SetText("Load Profile:")
+	profileSelectLabel:SetText(CursorRing_L["LOAD_PROFILE"])
 
 	local function GetProfileOptions()
-		local options = {{ text = "None (Character Settings)", value = nil }}
+		local options = {{ text = CursorRing_L["PROFILE_NONE"], value = nil }}
 		local profiles = profileManager:GetProfileList()
 		for _, name in ipairs(profiles) do
 			table.insert(options, { text = name, value = name })
@@ -1465,11 +1465,10 @@ local function CreateOptionsPanel()
                 OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
 				
 				cursorRingOptionsPanel.RefreshProfileDropdown()
-				print("CursorRing: Loaded profile '" .. value .. "'")
-				local statusText = "Active Profile: " .. value
-				profileStatusLabel:SetText(statusText)
+				print(string.format(CursorRing_L["MSG_LOADED_PROFILE"], value))
+				profileStatusLabel:SetText(string.format(CursorRing_L["ACTIVE_PROFILE"], value))
 			else
-				print("CursorRing: Failed to load profile '" .. value .. "'")
+				print(string.format(CursorRing_L["MSG_FAILED_LOAD"], value))
 			end
 		else
 			-- Switch back to character settings
@@ -1510,8 +1509,8 @@ local function CreateOptionsPanel()
             OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
 			
 			cursorRingOptionsPanel.RefreshProfileDropdown()
-			print("CursorRing: Using character settings")
-			profileStatusLabel:SetText("Active Profile: None (Character Settings)")
+			print(CursorRing_L["MSG_USING_CHAR"])
+			profileStatusLabel:SetText(CursorRing_L["ACTIVE_PROFILE_NONE"])
 		end
 	end
 
@@ -1534,7 +1533,7 @@ local function CreateOptionsPanel()
     -- Delete Profile Button
     local deleteProfileButton = OptionsPanel:AddButton(panel, {
         key = "deleteProfile",
-        text = "Delete Selected Profile",
+        text = CursorRing_L["DELETE_PROFILE"],
         width = 150,
         height = 25,
         anchor = profileSelectLabel,
@@ -1618,14 +1617,14 @@ local function CreateOptionsPanel()
 				
 				-- Verify deletion
 				if not profileManager:ProfileExists(activeProfile) then
-					print("CursorRing: Deleted profile '" .. activeProfile .. "' and reset to defaults")
+					print(string.format(CursorRing_L["MSG_DELETED_PROFILE"], activeProfile))
 				else
-					print("CursorRing: Failed to delete profile '" .. activeProfile .. "'")
+					print(string.format(CursorRing_L["MSG_FAILED_DELETE"], activeProfile))
 				end
 				
-				profileStatusLabel:SetText("Active Profile: None (Character Settings)")
+				profileStatusLabel:SetText(CursorRing_L["ACTIVE_PROFILE_NONE"])
 			else
-				print("CursorRing: No profile selected")
+				print(CursorRing_L["MSG_NO_PROFILE"])
 			end
 		end
     })
@@ -1634,7 +1633,7 @@ local function CreateOptionsPanel()
 	function cursorRingOptionsPanel.RefreshProfileDropdown()
 		local options = GetProfileOptions()
 		local activeProfile = profileManager:GetActiveProfile()
-		local displayText = activeProfile or "None (Character Settings)"
+		local displayText = activeProfile or CursorRing_L["PROFILE_NONE"]
 		
 		local dropdown = panel.elements["profileSelect"].dropdown
 		
@@ -1696,7 +1695,7 @@ local function UpdateOptionsPanel()
 
 
     -- Update dropdowns
-    local texName = "Ring"
+    local texName = CursorRing_L["SHAPE_RING"]
     for _, opt in ipairs(outerRingOptions) do
         if opt.file == ringTexture then
             texName = opt.name
@@ -1705,7 +1704,7 @@ local function UpdateOptionsPanel()
     end
     OptionsPanel:UpdateDropdown(cursorRingOptionsPanel, "ringTexture", ringTexture, texName)
 
-    local styleName = currentCastStyle == "fill" and "Fill" or (currentCastStyle == "wedge" and "Wedge" or "Ring")
+    local styleName = currentCastStyle == "fill" and CursorRing_L["STYLE_FILL"] or (currentCastStyle == "wedge" and CursorRing_L["STYLE_WEDGE"] or CursorRing_L["STYLE_RING"])
     OptionsPanel:UpdateDropdown(cursorRingOptionsPanel, "castStyle", currentCastStyle, styleName)
 
     -- Refresh style dropdown
@@ -1716,7 +1715,7 @@ local function UpdateOptionsPanel()
     -- Update profile status
     if cursorRingOptionsPanel.profileStatusLabel then
         local activeProfile = profileManager:GetActiveProfile()
-        local statusText = activeProfile and ("Active Profile: " .. activeProfile) or "Active Profile: None (Character Settings)"
+        local statusText = activeProfile and string.format(CursorRing_L["ACTIVE_PROFILE"], activeProfile) or CursorRing_L["ACTIVE_PROFILE_NONE"]
         cursorRingOptionsPanel.profileStatusLabel:SetText(statusText)
     end
     
@@ -1756,7 +1755,7 @@ addon:SetScript("OnEvent", function(self,event,...)
             ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(ringTexture))
 			ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
             if debugMode then
-				print("CursorRing: Updated ring texture to " .. ringTexture)
+				print(string.format(CursorRing_L["MSG_DEBUG_TEXTURE"], ringTexture))
 			end
         end
         if castFill then
@@ -1812,9 +1811,9 @@ SlashCmdList["CURSORRING"] = function(msg)
     if msg == "debug" then
         debugMode = not debugMode
         CursorRingGlobalDB.debugMode = debugMode
-        print("CursorRing: Debug mode " .. (debugMode and "enabled" or "disabled"))
+        print(debugMode and CursorRing_L["MSG_DEBUG_ENABLED"] or CursorRing_L["MSG_DEBUG_DISABLED"])
     else
-        print("CursorRing commands:")
-        print("  /cursorring debug - Toggle debug output")
+        print(CursorRing_L["MSG_COMMANDS"])
+        print(CursorRing_L["MSG_CMD_DEBUG"])
     end
 end
