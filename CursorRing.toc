@@ -2,7 +2,7 @@
 ## Title: Cursor Ring
 ## Notes: Puts a persistent class-coloured or preference-coloured ring and cast-ring around your mouse cursor.
 ## Author: Periago - Dalaran
-## Version: 1.4.0
+## Version: 1.4.1
 ## Category: User Interface
 ## Category-deDE: Benutzerinterface
 ## Category-esES: Interfaz de usuario
