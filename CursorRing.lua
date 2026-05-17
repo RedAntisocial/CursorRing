@@ -23,6 +23,9 @@ local ringOutline
 local ringOutlineEnabled = false
 local ringOutlineSize = 4
 local ringOutlineColor = { r = 1, g = 1, b = 1 }
+local gcdSegments, gcdEnabled
+local gcdColor = { r = 1, g = 0.8, b = 0 }
+local gcdStart, gcdDuration = 0, 0
 local profileManager
 local panelLoaded = false
 local trailBuffer = {}
@@ -55,6 +58,7 @@ local DEFAULTS = {
     sparkleMultiplier = 1.0,
 	ringOutlineEnabled = false,
     ringOutlineSize = 4,
+    gcdEnabled = false,
 }
 
 -- Outer Ring Options
@@ -89,7 +93,8 @@ local function InitializeProfileManager()
             "ringEnabled", "castEnabled", "ringSize", "ringColor", "ringTexture",
             "castColor", "castStyle", "showOutOfCombat", "combatAlpha", "outOfCombatAlpha",
             "mouseTrail", "sparkleTrail", "trailFadeTime", "trailColor", "sparkleColor",
-            "sparkleMultiplier", "noDot", "ringOutlineEnabled", "ringOutlineSize", "ringOutlineColor"
+            "sparkleMultiplier", "noDot", "ringOutlineEnabled", "ringOutlineSize", "ringOutlineColor",
+            "gcdEnabled", "gcdColor"
         },
         onProfileChanged = function(profileName)
         end
@@ -119,6 +124,8 @@ local function GetCurrentSettings()
 		ringOutlineEnabled = ringOutlineEnabled,
         ringOutlineSize = ringOutlineSize,
         ringOutlineColor = { r = ringOutlineColor.r, g = ringOutlineColor.g, b = ringOutlineColor.b },
+        gcdEnabled = gcdEnabled,
+        gcdColor = { r = gcdColor.r, g = gcdColor.g, b = gcdColor.b },
     }
 	
 	if debugMode then
@@ -141,6 +148,7 @@ local function GetCurrentSettings()
 		print("  sparkleColor = {r=" .. tostring(sparkleColor.r) .. ", g=" .. tostring(sparkleColor.g) .. ", b=" .. tostring(sparkleColor.b) .. "}")
 		print("  sparkleMultiplier = " .. tostring(sparkleMultiplier))
 		print("  noDot = " .. tostring(noDot))
+        print("  gcdEnabled = " .. tostring(gcdEnabled))
 		-- End Debug
 	end
 	
@@ -179,6 +187,7 @@ local function ApplySettings(settings)
 		end
 		print("  sparkleMultiplier = " .. tostring(settings.sparkleMultiplier))
 		print("  noDot = " .. tostring(settings.noDot))
+        print("  gcdEnabled = " .. tostring(gcdEnabled))
 		-- End Debug
 	end
 	
@@ -194,6 +203,11 @@ local function ApplySettings(settings)
     ringOutlineSize = settings.ringOutlineSize or DEFAULTS.ringOutlineSize
     if settings.ringOutlineColor then
         ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b = settings.ringOutlineColor.r, settings.ringOutlineColor.g, settings.ringOutlineColor.b
+    end
+
+    gcdEnabled = settings.gcdEnabled ~= false
+    if settings.gcdColor then
+        gcdColor.r, gcdColor.g, gcdColor.b = settings.gcdColor.r, settings.gcdColor.g, settings.gcdColor.b
     end
 
     showOutOfCombat = settings.showOutOfCombat ~= false
@@ -239,6 +253,7 @@ local function ApplySettings(settings)
 		print("  sparkleColor = " .. tostring(sparkleColor.r) .. ", " .. tostring(sparkleColor.g) .. ", " .. tostring(sparkleColor.b))
 		print("  sparkleMultiplier = " .. tostring(sparkleMultiplier))
 		print("  noDot = " .. tostring(noDot))
+        print("  gcdEnabled = " .. tostring(gcdEnabled))
 		-- End Debug
 	end
 end
@@ -304,6 +319,8 @@ local function LoadSpecSettings()
 		ringOutlineEnabled = DEFAULTS.ringOutlineEnabled
         ringOutlineSize = DEFAULTS.ringOutlineSize
         ringOutlineColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
+        gcdEnabled = DEFAULTS.gcdEnabled
+        gcdColor = { r = 1, g = 0.8, b = 0 }
         
         -- Save defaults
         profileManager:SaveSettings(GetCurrentSettings())
@@ -339,7 +356,7 @@ local function GetEffectiveOutlineSize()
     return ringOutlineSize * (ringSize / 48)
 end
 
--- Spec specific Ring Size update
+-- Ring Size update
 local function UpdateRingSize(size)
     ringSize = size
     GetSpecDB().ringSize = size
@@ -349,6 +366,12 @@ local function UpdateRingSize(size)
 		if ringOutline then
 			ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
 		end
+		if gcdSegments then
+            local s = ringSize + GetEffectiveOutlineSize() + (ringSize * 0.156)
+            for i = 1, NUM_CAST_SEGMENTS do
+                if gcdSegments[i] then gcdSegments[i]:SetSize(s, s) end
+            end
+        end
     end
 end
 
@@ -368,6 +391,18 @@ local function UpdateRingOutlineSize(size)
     if ringOutline then
         ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
     end
+    if gcdSegments then
+        local s = ringSize + GetEffectiveOutlineSize() + (ringSize * 0.156)
+        for i = 1, NUM_CAST_SEGMENTS do
+            if gcdSegments[i] then gcdSegments[i]:SetSize(s, s) end
+        end
+    end
+end
+
+local function UpdateGCDColor(r, g, b)
+    gcdColor.r, gcdColor.g, gcdColor.b = r, g, b
+    GetSpecDB().gcdColor = { r = r, g = g, b = b }
+    SaveSpecSettings()
 end
 
 -- Update Cast Style (fill or ring. Ring is better, but some people want fill)
@@ -499,6 +534,11 @@ local function UpdateRingVisibility()
 			if ringOutline then
                 ringOutline:SetAlpha(alpha)
             end
+            if gcdSegments and not (gcdEnabled and ShouldShowAllowedByInstanceRules()) then
+                for i = 1, NUM_CAST_SEGMENTS do
+                    if gcdSegments[i] then gcdSegments[i]:SetVertexColor(gcdColor.r, gcdColor.g, gcdColor.b, 0) end
+                end
+            end
         end
     end
 end
@@ -592,6 +632,40 @@ local function CreateCursorRing()
 
     UpdateCastStyle(castStyle)
 
+    -- GCD Ring segments (above outline, below ring)
+    gcdSegments = {}
+    for i = 1, NUM_CAST_SEGMENTS do
+        local segment = f:CreateTexture(nil, "BACKGROUND", nil, 7)
+        segment:SetTexture("Interface\\AddOns\\CursorRing\\cast_segment.tga", "CLAMP")
+        segment:SetSize(ringSize + GetEffectiveOutlineSize() + (ringSize * 0.156), ringSize + GetEffectiveOutlineSize() + (ringSize * 0.156))
+        segment:SetPoint("CENTER", f, "CENTER")
+        segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
+        segment:SetVertexColor(gcdColor.r, gcdColor.g, gcdColor.b, 0)
+        gcdSegments[i] = segment
+    end
+
+    -- GCD Ticker
+    local gcdTicker = C_Timer.NewTicker(0.016, function()
+        if not gcdEnabled then return end
+
+        local shouldShow = gcdEnabled and ShouldShowAllowedByInstanceRules()
+        local progress = 0
+
+        if gcdStart > 0 and gcdDuration > 0 then
+            local elapsed = GetTime() - gcdStart
+            if elapsed < gcdDuration then
+                progress = Clamp(1 - (elapsed / gcdDuration), 0, 1)
+            end
+        end
+
+        local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
+        for i = 1, NUM_CAST_SEGMENTS do
+            if gcdSegments[i] then
+                gcdSegments[i]:SetVertexColor(gcdColor.r, gcdColor.g, gcdColor.b, shouldShow and i <= numLit and 1 or 0)
+            end
+        end
+    end)
+
     -- Mouse Trail
     local function CreateTrailTexture(parent)
         local tex = parent:CreateTexture(nil, "BACKGROUND")
@@ -656,6 +730,19 @@ local function CreateCursorRing()
 						end
 					end
 				end
+
+				-- Apply to active GCD segments
+				if gcdEnabled and gcdSegments then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        local seg = gcdSegments[i]
+                        if seg then
+                            local r, g, b, a = seg:GetVertexColor()
+                            if a > 0 then
+                                seg:SetVertexColor(r, g, b, cursorAlpha)
+                            end
+                        end
+                    end
+                end
 
 				-- Apply to active trail points
 				if mouseTrailActive then
@@ -1114,6 +1201,46 @@ local function CreateOptionsPanel()
             UpdateCastStyle(value)
         end
     })
+
+    -- Enable GCD Ring Checkbox
+    local gcdEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
+        key = "gcdEnabled",
+        label = CursorRing_L["ENABLE_GCD"],
+        default = specDB.gcdEnabled ~= false,
+        anchor = styleLabel,
+        point = "TOPLEFT",
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -16,
+        onClick = function(checked)
+        gcdEnabled = checked
+        GetSpecDB().gcdEnabled = gcdEnabled
+        SaveSpecSettings()
+        UpdateRingVisibility()
+        end
+    })
+
+    -- GCD Color Picker
+    local gcdColorData = specDB.gcdColor or { r = 1, g = 0.8, b = 0 }
+    local gcdColorButton, gcdColorTexture, gcdColorLabel = OptionsPanel:AddColorPicker(panel, {
+        key = "gcdColor",
+        label = CursorRing_L["GCD_COLOR"],
+        r = gcdColorData.r,
+        g = gcdColorData.g,
+        b = gcdColorData.b,
+        anchor = gcdEnabledCheckbox,
+        point = "TOPLEFT",
+        relativePoint = "BOTTOMLEFT",
+        xOffset = 0,
+        yOffset = -8,
+        onColorChanged = function(r, g, b)
+        gcdColor.r, gcdColor.g, gcdColor.b = r, g, b
+        GetSpecDB().gcdColor = { r = r, g = g, b = b }
+        SaveSpecSettings()
+        UpdateGCDColor(r, g, b)
+        end
+    })
+
 	-- Outline Enable Checkbox
     local ringOutlineCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "ringOutlineEnabled",
@@ -1444,25 +1571,29 @@ local function CreateOptionsPanel()
 				UpdateRingOutlineSize(ringOutlineSize)
 				
 				
-				-- Update UI controls directly
-				OptionsPanel:UpdateCheckbox(panel, "showOutOfCombat", showOutOfCombat)
-				OptionsPanel:UpdateCheckbox(panel, "ringEnabled", ringEnabled)
-				OptionsPanel:UpdateCheckbox(panel, "castEnabled", castEnabled)
-				OptionsPanel:UpdateCheckbox(panel, "mouseTrail", mouseTrail)
-				OptionsPanel:UpdateCheckbox(panel, "sparkleTrail", sparkleTrail)
-				OptionsPanel:UpdateCheckbox(panel, "noDot", noDot)
-				OptionsPanel:UpdateSlider(panel, "ringSize", ringSize)
-				OptionsPanel:UpdateSlider(panel, "combatAlpha", combatAlpha)
-				OptionsPanel:UpdateSlider(panel, "outOfCombatAlpha", outOfCombatAlpha)
-				OptionsPanel:UpdateSlider(panel, "trailFadeTime", trailFadeTime)
-				OptionsPanel:UpdateSlider(panel, "sparkleMultiplier", sparkleMultiplier)
-				OptionsPanel:UpdateColorPicker(panel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
-				OptionsPanel:UpdateColorPicker(panel, "castColor", castColor.r, castColor.g, castColor.b)
-				OptionsPanel:UpdateColorPicker(panel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
-				OptionsPanel:UpdateColorPicker(panel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
-				OptionsPanel:UpdateCheckbox(panel, "ringOutlineEnabled", ringOutlineEnabled)
-                OptionsPanel:UpdateColorPicker(panel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
-                OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
+                -- Update all controls
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", castEnabled ~= false)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", sparkleTrail or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", noDot or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringOutlineEnabled", ringOutlineEnabled or false)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringOutlineSize", ringOutlineSize or 4)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "gcdEnabled", gcdEnabled ~= false)
+
+                -- Update color pickers
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "castColor", castColor.r, castColor.g, castColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "gcdColor", gcdColor.r, gcdColor.g, gcdColor.b)
 				
 				cursorRingOptionsPanel.RefreshProfileDropdown()
 				print(string.format(CursorRing_L["MSG_LOADED_PROFILE"], value))
@@ -1488,25 +1619,29 @@ local function CreateOptionsPanel()
 			UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
 			UpdateRingOutlineSize(ringOutlineSize)
 			
-			-- Update UI controls directly
-			OptionsPanel:UpdateCheckbox(panel, "showOutOfCombat", showOutOfCombat)
-			OptionsPanel:UpdateCheckbox(panel, "ringEnabled", ringEnabled)
-			OptionsPanel:UpdateCheckbox(panel, "castEnabled", castEnabled)
-			OptionsPanel:UpdateCheckbox(panel, "mouseTrail", mouseTrail)
-			OptionsPanel:UpdateCheckbox(panel, "sparkleTrail", sparkleTrail)
-			OptionsPanel:UpdateCheckbox(panel, "noDot", noDot)
-			OptionsPanel:UpdateSlider(panel, "ringSize", ringSize)
-			OptionsPanel:UpdateSlider(panel, "combatAlpha", combatAlpha)
-			OptionsPanel:UpdateSlider(panel, "outOfCombatAlpha", outOfCombatAlpha)
-			OptionsPanel:UpdateSlider(panel, "trailFadeTime", trailFadeTime)
-			OptionsPanel:UpdateSlider(panel, "sparkleMultiplier", sparkleMultiplier)
-			OptionsPanel:UpdateColorPicker(panel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
-			OptionsPanel:UpdateColorPicker(panel, "castColor", castColor.r, castColor.g, castColor.b)
-			OptionsPanel:UpdateColorPicker(panel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
-			OptionsPanel:UpdateColorPicker(panel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
-			OptionsPanel:UpdateCheckbox(panel, "ringOutlineEnabled", ringOutlineEnabled)
-            OptionsPanel:UpdateColorPicker(panel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
-            OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
+            -- Update all controls
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", castEnabled ~= false)
+            OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
+            OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
+            OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
+            OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
+            OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", sparkleTrail or false)
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", noDot or false)
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringOutlineEnabled", ringOutlineEnabled or false)
+            OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringOutlineSize", ringOutlineSize or 4)
+            OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "gcdEnabled", gcdEnabled ~= false)
+
+            -- Update color pickers
+            OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+            OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
+            OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "castColor", castColor.r, castColor.g, castColor.b)
+            OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
+            OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+            OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "gcdColor", gcdColor.r, gcdColor.g, gcdColor.b)
 			
 			cursorRingOptionsPanel.RefreshProfileDropdown()
 			print(CursorRing_L["MSG_USING_CHAR"])
@@ -1591,25 +1726,29 @@ local function CreateOptionsPanel()
 				UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
 				UpdateRingOutlineSize(ringOutlineSize)
 				
-				-- Update UI controls directly
-				OptionsPanel:UpdateCheckbox(panel, "showOutOfCombat", showOutOfCombat)
-				OptionsPanel:UpdateCheckbox(panel, "ringEnabled", ringEnabled)
-				OptionsPanel:UpdateCheckbox(panel, "castEnabled", castEnabled)
-				OptionsPanel:UpdateCheckbox(panel, "mouseTrail", mouseTrail)
-				OptionsPanel:UpdateCheckbox(panel, "sparkleTrail", sparkleTrail)
-				OptionsPanel:UpdateCheckbox(panel, "noDot", noDot)
-				OptionsPanel:UpdateSlider(panel, "ringSize", ringSize)
-				OptionsPanel:UpdateSlider(panel, "combatAlpha", combatAlpha)
-				OptionsPanel:UpdateSlider(panel, "outOfCombatAlpha", outOfCombatAlpha)
-				OptionsPanel:UpdateSlider(panel, "trailFadeTime", trailFadeTime)
-				OptionsPanel:UpdateSlider(panel, "sparkleMultiplier", sparkleMultiplier)
-				OptionsPanel:UpdateColorPicker(panel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
-				OptionsPanel:UpdateColorPicker(panel, "castColor", castColor.r, castColor.g, castColor.b)
-				OptionsPanel:UpdateColorPicker(panel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
-				OptionsPanel:UpdateColorPicker(panel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
-				OptionsPanel:UpdateCheckbox(panel, "ringOutlineEnabled", ringOutlineEnabled)
-                OptionsPanel:UpdateColorPicker(panel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
-                OptionsPanel:UpdateSlider(panel, "ringOutlineSize", ringOutlineSize)
+                -- Update all controls
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", castEnabled ~= false)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", sparkleTrail or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", noDot or false)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringOutlineEnabled", ringOutlineEnabled or false)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringOutlineSize", ringOutlineSize or 4)
+                OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "gcdEnabled", gcdEnabled ~= false)
+
+                -- Update color pickers
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "castColor", castColor.r, castColor.g, castColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+                OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "gcdColor", gcdColor.r, gcdColor.g, gcdColor.b)
 				
 				
 				-- Refresh dropdown
@@ -1684,14 +1823,16 @@ local function UpdateOptionsPanel()
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", sparkleTrail or false)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", noDot or false)
 	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringOutlineEnabled", ringOutlineEnabled or false)
-    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringOutlineSize", ringOutlineSize or 4)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "gcdEnabled", gcdEnabled ~= false)
 
     -- Update color pickers
+    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
 	OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
     OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "castColor", castColor.r, castColor.g, castColor.b)
     OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
     OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
+    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "gcdColor", gcdColor.r, gcdColor.g, gcdColor.b)
 
 
     -- Update dropdowns
@@ -1735,6 +1876,7 @@ addon:RegisterEvent("UNIT_SPELLCAST_START")
 addon:RegisterEvent("UNIT_SPELLCAST_STOP")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
+addon:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 addon:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 addon:RegisterEvent("PLAYER_REGEN_DISABLED")
 addon:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -1789,6 +1931,11 @@ addon:SetScript("OnEvent", function(self,event,...)
                 end
             end
         end
+    elseif event == "SPELL_UPDATE_COOLDOWN" then
+        local info = C_Spell.GetSpellCooldown(61304)
+        if info and info.isOnGCD then
+            gcdStart, gcdDuration = info.startTime, info.duration
+        end
 	elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
 		cachedUILeft, cachedUIBottom = nil, nil
     elseif event == "ADDON_LOADED" then
@@ -1812,6 +1959,25 @@ SlashCmdList["CURSORRING"] = function(msg)
         debugMode = not debugMode
         CursorRingGlobalDB.debugMode = debugMode
         print(debugMode and CursorRing_L["MSG_DEBUG_ENABLED"] or CursorRing_L["MSG_DEBUG_DISABLED"])
+    elseif msg == "gcdtest" then
+            local info = C_Spell.GetSpellCooldown(61304)
+        if info then
+            print("GCD info dump:")
+            for k, v in pairs(info) do
+                print("  " .. tostring(k) .. " = " .. tostring(v))
+            end
+        else
+            print("GCD: nil return")
+        end
+    elseif msg == "gcdsize" then
+        local input = select(2, strsplit(" ", msg .. " "))
+        local s = tonumber(input)
+        if gcdSegments and s then
+            for i = 1, NUM_CAST_SEGMENTS do
+                if gcdSegments[i] then gcdSegments[i]:SetSize(s, s) end
+            end
+            print("GCD segment size set to " .. s)
+        end
     else
         print(CursorRing_L["MSG_COMMANDS"])
         print(CursorRing_L["MSG_CMD_DEBUG"])

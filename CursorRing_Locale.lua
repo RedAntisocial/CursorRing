@@ -18,6 +18,7 @@ local L = {
         ENABLE_OUTLINE              = "Enable Ring Outline",
         ENABLE_TRAIL                = "Enable Mouse Trail",
         ENABLE_SPARKLE              = "Enable Sparkle Effect on Mouse Trail",
+        ENABLE_GCD                  = "Enable Global Cooldown Ring",
 
         -- Sliders
         RING_SIZE                   = "Ring Size",
@@ -43,6 +44,7 @@ local L = {
         OUTLINE_COLOR               = "Outline Color:",
         TRAIL_COLOR                 = "Mouse Trail Color:",
         SPARKLE_COLOR               = "Sparkle Color:",
+        GCD_COLOR                   = "GCD Color:",
 
         -- Buttons
         RESET                       = "Reset",
