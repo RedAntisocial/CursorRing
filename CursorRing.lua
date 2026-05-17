@@ -1959,25 +1959,6 @@ SlashCmdList["CURSORRING"] = function(msg)
         debugMode = not debugMode
         CursorRingGlobalDB.debugMode = debugMode
         print(debugMode and CursorRing_L["MSG_DEBUG_ENABLED"] or CursorRing_L["MSG_DEBUG_DISABLED"])
-    elseif msg == "gcdtest" then
-            local info = C_Spell.GetSpellCooldown(61304)
-        if info then
-            print("GCD info dump:")
-            for k, v in pairs(info) do
-                print("  " .. tostring(k) .. " = " .. tostring(v))
-            end
-        else
-            print("GCD: nil return")
-        end
-    elseif msg == "gcdsize" then
-        local input = select(2, strsplit(" ", msg .. " "))
-        local s = tonumber(input)
-        if gcdSegments and s then
-            for i = 1, NUM_CAST_SEGMENTS do
-                if gcdSegments[i] then gcdSegments[i]:SetSize(s, s) end
-            end
-            print("GCD segment size set to " .. s)
-        end
     else
         print(CursorRing_L["MSG_COMMANDS"])
         print(CursorRing_L["MSG_CMD_DEBUG"])
