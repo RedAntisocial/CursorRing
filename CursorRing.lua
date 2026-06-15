@@ -26,6 +26,8 @@ local ringOutlineColor = { r = 1, g = 1, b = 1 }
 local gcdSegments, gcdEnabled
 local gcdColor = { r = 1, g = 0.8, b = 0 }
 local gcdStart, gcdDuration = 0, 0
+local isEmpoweredCast = false
+local empowerStageFractions = {}
 local profileManager
 local panelLoaded = false
 local trailBuffer = {}
@@ -458,7 +460,7 @@ end
 local function UpdateRingTexture(textureFile)
     if ring then
         ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
-		if ringOutline then
+        if ringOutline then
 			ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
 		end
     end
@@ -719,7 +721,7 @@ local function CreateCursorRing()
 				end
 
 				-- Apply to cast segments
-				if castSegments then
+				if castSegments and not isEmpoweredCast then
 					for i = 1, NUM_CAST_SEGMENTS do
 						local seg = castSegments[i]
 						if seg then
@@ -844,7 +846,11 @@ local function CreateCursorRing()
         if castName then
             progress = (now - (castStartTime/1000)) / ((castEndTime - castStartTime)/1000)
         elseif channelName then
-            progress = 1 - ((now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000))
+            if isEmpoweredCast then
+                progress = (now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000)
+            else
+                progress = 1 - ((now - (channelStartTime/1000)) / ((channelEndTime - channelStartTime)/1000))
+            end
         else
             casting = false
             -- Hide all segments and fill when done (not just cast rings)
@@ -877,7 +883,61 @@ local function CreateCursorRing()
             local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
             for i=1,NUM_CAST_SEGMENTS do
                 if castSegments[i] then
-                    castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and i <= numLit and 1 or 0)
+                    if isEmpoweredCast then
+                        -- Only overwrite segments up to progress; leave the rest for the empowered block
+                        if i <= numLit then
+                            castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and 1 or 0)
+                        end
+                    else
+                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and i <= numLit and 1 or 0)
+                    end
+                end
+            end
+        end
+        -- Empowered stage markers
+        if isEmpoweredCast and shouldShow and castSegments then
+            -- Build stage fractions once per cast
+            if #empowerStageFractions == 0 then
+                local _, _, _, _, _, _, _, _, _, numStages = UnitChannelInfo("player")
+                if numStages and numStages > 0 then
+                    local totalDuration = 0
+                    local stageDurations = {}
+                    for i = 0, numStages - 1 do
+                        local d = GetUnitEmpowerStageDuration("player", i) or 0
+                        stageDurations[i + 1] = d
+                        totalDuration = totalDuration + d
+                    end
+                    -- Build boundary fractions (between stages, not at the end)
+                    local cumulative = 0
+                    for i = 1, numStages - 1 do
+                        cumulative = cumulative + stageDurations[i]
+                        table.insert(empowerStageFractions, cumulative / totalDuration)
+                    end
+                    -- Pre-fill each stage section at its alpha level
+                    local prevBoundary = 0
+                    for stageIdx = 1, numStages do
+                        local nextBoundary = stageIdx < numStages
+                        and math.floor(empowerStageFractions[stageIdx] * NUM_CAST_SEGMENTS + 0.5)
+                        or NUM_CAST_SEGMENTS
+                        local stageAlpha = (stageIdx / numStages) * (0.3 * stageIdx)
+                        for i = prevBoundary + 1, nextBoundary do
+                            if castSegments[i] then
+                                castSegments[i]:SetVertexColor(0.9 - castColor.r, 0.9 - castColor.g, 0.9 - castColor.b, stageAlpha)
+                            end
+                        end
+                        prevBoundary = nextBoundary
+                    end
+                end
+            end
+            -- Restore tick segments at boundaries — 100% alpha if cast has passed, stage alpha if not
+            for boundaryIdx, fraction in ipairs(empowerStageFractions) do
+                local markerSeg = math.floor(fraction * NUM_CAST_SEGMENTS + 0.5)
+                local tickAlpha = (progress >= fraction) and 1 or (boundaryIdx / (1 + #empowerStageFractions))
+                for offset = -1, 1 do
+                    local idx = markerSeg + offset
+                    if idx >= 1 and idx <= NUM_CAST_SEGMENTS and castSegments[idx] then
+                        castSegments[idx]:SetVertexColor(1 - castColor.r, 1 - castColor.g, 1 - castColor.b, tickAlpha)
+                    end
                 end
             end
         end
@@ -1876,6 +1936,8 @@ addon:RegisterEvent("UNIT_SPELLCAST_START")
 addon:RegisterEvent("UNIT_SPELLCAST_STOP")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 addon:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
+addon:RegisterEvent("UNIT_SPELLCAST_EMPOWER_START")
+addon:RegisterEvent("UNIT_SPELLCAST_EMPOWER_STOP")
 addon:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 addon:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 addon:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -1931,6 +1993,27 @@ addon:SetScript("OnEvent", function(self,event,...)
                 end
             end
         end
+        elseif event == "UNIT_SPELLCAST_EMPOWER_START" then
+            local unit = ...
+            if unit == "player" then
+                casting = true
+                isEmpoweredCast = true
+                empowerStageFractions = {}
+            end
+        elseif event == "UNIT_SPELLCAST_EMPOWER_STOP" then
+            local unit = ...
+            if unit == "player" then
+                casting = false
+                isEmpoweredCast = false
+                empowerStageFractions = {}
+                if castSegments then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        if castSegments[i] then
+                            castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, 0)
+                        end
+                    end
+                end
+            end
     elseif event == "SPELL_UPDATE_COOLDOWN" then
         local info = C_Spell.GetSpellCooldown(61304)
         if info and info.isOnGCD then
@@ -1959,6 +2042,21 @@ SlashCmdList["CURSORRING"] = function(msg)
         debugMode = not debugMode
         CursorRingGlobalDB.debugMode = debugMode
         print(debugMode and CursorRing_L["MSG_DEBUG_ENABLED"] or CursorRing_L["MSG_DEBUG_DISABLED"])
+    elseif msg == "empowertest" then
+        local name, _, _, startTimeMs, endTimeMs, _, _, spellID, isEmpowered, numEmpowerStages = UnitChannelInfo("player")
+        if name then
+            print("Channel: " .. tostring(name))
+            print("isEmpowered: " .. tostring(isEmpowered))
+            print("numEmpowerStages: " .. tostring(numEmpowerStages))
+            print("spellID: " .. tostring(spellID))
+            if numEmpowerStages then
+                for i = 0, numEmpowerStages - 1 do
+                    print("Stage " .. i .. " duration: " .. tostring(GetUnitEmpowerStageDuration("player", i)))
+                end
+            end
+        else
+            print("Not channeling")
+        end
     else
         print(CursorRing_L["MSG_COMMANDS"])
         print(CursorRing_L["MSG_CMD_DEBUG"])
