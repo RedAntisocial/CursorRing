@@ -1,8 +1,8 @@
-## Interface: 120005, 120007
+## Interface: 120007, 120100
 ## Title: Cursor Ring
 ## Notes: Puts a persistent class-coloured or preference-coloured ring and cast-ring around your mouse cursor.
 ## Author: Periago - Dalaran
-## Version: 1.5.3
+## Version: 1.5.4
 ## Category: User Interface
 ## Category-deDE: Benutzerinterface
 ## Category-esES: Interfaz de usuario
