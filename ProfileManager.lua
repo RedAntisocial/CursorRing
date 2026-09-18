@@ -26,7 +26,7 @@ end
 function ProfileManager:GetCharacterSpecKey()
     local realm = GetRealmName()
     local name = UnitName("player")
-    local specIndex = GetSpecialization()
+    local specIndex = GetSpecialization and GetSpecialization() or nil
     local specKey = "NoSpec"
     
     if specIndex then

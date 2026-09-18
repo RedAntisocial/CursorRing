@@ -267,14 +267,6 @@ local function ApplyNoDotSuffix(filename)
     return baseName .. "_no_dot.tga"
 end
 
--- Get current spec key
-local function GetCurrentSpecKey()
-    local specIndex = GetSpecialization()
-    if not specIndex then return "NoSpec" end
-    local _, specName = GetSpecializationInfo(specIndex)
-    return specName or ("Spec"..specIndex)
-end
-
 -- Load per-spec settings
 local function LoadSpecSettings()
     InitializeProfileManager()
