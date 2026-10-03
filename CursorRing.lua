@@ -624,6 +624,7 @@ local function CreateCursorRing()
 
     -- GCD Ticker
     local gcdWasActive = false
+    local gcdLastNumLit, gcdLastShouldShow = -1, nil
     local gcdTicker = C_Timer.NewTicker(0.016, function()
         if not gcdEnabled then return end
 
@@ -635,14 +636,19 @@ local function CreateCursorRing()
 
         local shouldShow = ShouldShowAllowedByInstanceRules()
         local progress = isActive and Clamp(1 - (elapsed / gcdDuration), 0, 1) or 0
-
         local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
+
+        if isActive == gcdWasActive and numLit == gcdLastNumLit and shouldShow == gcdLastShouldShow then
+            return
+        end
+
         for i = 1, NUM_CAST_SEGMENTS do
             if gcdSegments[i] then
                 gcdSegments[i]:SetVertexColor(gcdColor.r, gcdColor.g, gcdColor.b, shouldShow and i <= numLit and 1 or 0)
             end
         end
         gcdWasActive = isActive
+        gcdLastNumLit, gcdLastShouldShow = numLit, shouldShow
     end)
 
     -- Mouse Trail
@@ -809,6 +815,7 @@ local function CreateCursorRing()
     end)
 
     -- Separate ticker for cast progress updates (lower frequency)
+    local castLastNumLit, castLastShouldShow = -1, nil
     local castTicker = C_Timer.NewTicker(0.016, function()
         if not casting or not castEnabled then return end
 
@@ -839,6 +846,7 @@ local function CreateCursorRing()
                     end
                 end
             end
+            castLastNumLit, castLastShouldShow = -1, nil
             return
         end
 
@@ -855,17 +863,20 @@ local function CreateCursorRing()
         -- Ring/Wedge style (segment reveal)
         if (castStyle == "ring" or castStyle == "wedge") and castSegments then
             local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
-            for i=1,NUM_CAST_SEGMENTS do
-                if castSegments[i] then
-                    if isEmpoweredCast then
-                        -- Only overwrite segments up to progress; leave the rest for the empowered block
-                        if i <= numLit then
-                            castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and 1 or 0)
+            if numLit ~= castLastNumLit or shouldShow ~= castLastShouldShow then
+                for i=1,NUM_CAST_SEGMENTS do
+                    if castSegments[i] then
+                        if isEmpoweredCast then
+                            -- Only overwrite segments up to progress; leave the rest for the empowered block
+                            if i <= numLit then
+                                castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and 1 or 0)
+                            end
+                        else
+                            castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and i <= numLit and 1 or 0)
                         end
-                    else
-                        castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and i <= numLit and 1 or 0)
                     end
                 end
+                castLastNumLit, castLastShouldShow = numLit, shouldShow
             end
         end
         -- Empowered stage markers
