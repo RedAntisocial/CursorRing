@@ -58,7 +58,7 @@ local DEFAULTS = {
     trailFadeTime = 1.0,
     sparkleTrail = false,
     sparkleMultiplier = 1.0,
-	ringOutlineEnabled = false,
+    ringOutlineEnabled = false,
     ringOutlineSize = 4,
     gcdEnabled = false,
 }
@@ -88,7 +88,7 @@ end
 -- Initialize Profile Manager
 local function InitializeProfileManager()
     if profileManager then return end
-    
+
     profileManager = ProfileManager:Initialize({
         savedVariableTable = CursorRingGlobalDB,
         settingKeys = {
@@ -123,76 +123,76 @@ local function GetCurrentSettings()
         sparkleColor = { r = sparkleColor.r, g = sparkleColor.g, b = sparkleColor.b },
         sparkleMultiplier = sparkleMultiplier,
         noDot = noDot,
-		ringOutlineEnabled = ringOutlineEnabled,
+        ringOutlineEnabled = ringOutlineEnabled,
         ringOutlineSize = ringOutlineSize,
         ringOutlineColor = { r = ringOutlineColor.r, g = ringOutlineColor.g, b = ringOutlineColor.b },
         gcdEnabled = gcdEnabled,
         gcdColor = { r = gcdColor.r, g = gcdColor.g, b = gcdColor.b },
     }
-	
-	if debugMode then
-		-- Debug Block
-		print("DEBUG GetCurrentSettings:")
-		print("  ringEnabled = " .. tostring(ringEnabled))
-		print("  castEnabled = " .. tostring(castEnabled))
-		print("  ringSize = " .. tostring(ringSize))
-		print("  ringColor = {r=" .. tostring(ringColor.r) .. ", g=" .. tostring(ringColor.g) .. ", b=" .. tostring(ringColor.b) .. "}")
-		print("  ringTexture = " .. tostring(ringTexture))
-		print("  castColor = {r=" .. tostring(castColor.r) .. ", g=" .. tostring(castColor.g) .. ", b=" .. tostring(castColor.b) .. "}")
-		print("  castStyle = " .. tostring(currentCastStyle))
-		print("  showOutOfCombat = " .. tostring(showOutOfCombat))
-		print("  combatAlpha = " .. tostring(combatAlpha))
-		print("  outOfCombatAlpha = " .. tostring(outOfCombatAlpha))
-		print("  mouseTrail = " .. tostring(mouseTrail))
-		print("  sparkleTrail = " .. tostring(sparkleTrail))
-		print("  trailFadeTime = " .. tostring(trailFadeTime))
-		print("  trailColor = {r=" .. tostring(trailColor.r) .. ", g=" .. tostring(trailColor.g) .. ", b=" .. tostring(trailColor.b) .. "}")
-		print("  sparkleColor = {r=" .. tostring(sparkleColor.r) .. ", g=" .. tostring(sparkleColor.g) .. ", b=" .. tostring(sparkleColor.b) .. "}")
-		print("  sparkleMultiplier = " .. tostring(sparkleMultiplier))
-		print("  noDot = " .. tostring(noDot))
+
+    if debugMode then
+        -- Debug Block
+        print("DEBUG GetCurrentSettings:")
+        print("  ringEnabled = " .. tostring(ringEnabled))
+        print("  castEnabled = " .. tostring(castEnabled))
+        print("  ringSize = " .. tostring(ringSize))
+        print("  ringColor = {r=" .. tostring(ringColor.r) .. ", g=" .. tostring(ringColor.g) .. ", b=" .. tostring(ringColor.b) .. "}")
+        print("  ringTexture = " .. tostring(ringTexture))
+        print("  castColor = {r=" .. tostring(castColor.r) .. ", g=" .. tostring(castColor.g) .. ", b=" .. tostring(castColor.b) .. "}")
+        print("  castStyle = " .. tostring(currentCastStyle))
+        print("  showOutOfCombat = " .. tostring(showOutOfCombat))
+        print("  combatAlpha = " .. tostring(combatAlpha))
+        print("  outOfCombatAlpha = " .. tostring(outOfCombatAlpha))
+        print("  mouseTrail = " .. tostring(mouseTrail))
+        print("  sparkleTrail = " .. tostring(sparkleTrail))
+        print("  trailFadeTime = " .. tostring(trailFadeTime))
+        print("  trailColor = {r=" .. tostring(trailColor.r) .. ", g=" .. tostring(trailColor.g) .. ", b=" .. tostring(trailColor.b) .. "}")
+        print("  sparkleColor = {r=" .. tostring(sparkleColor.r) .. ", g=" .. tostring(sparkleColor.g) .. ", b=" .. tostring(sparkleColor.b) .. "}")
+        print("  sparkleMultiplier = " .. tostring(sparkleMultiplier))
+        print("  noDot = " .. tostring(noDot))
         print("  gcdEnabled = " .. tostring(gcdEnabled))
-		-- End Debug
-	end
-	
-	return settings
+        -- End Debug
+    end
+
+    return settings
 end
 
 -- Apply settings table to current variables
 local function ApplySettings(settings)
     if not settings then return end
-    
-	if debugMode then
-		-- Debug Block
-		print("DEBUG ApplySettings - INPUT:")
-		print("  ringEnabled = " .. tostring(settings.ringEnabled))
-		print("  castEnabled = " .. tostring(settings.castEnabled))
-		print("  ringSize = " .. tostring(settings.ringSize))
-		if settings.ringColor then
-			print("  ringColor = " .. tostring(settings.ringColor.r) .. ", " .. tostring(settings.ringColor.g) .. ", " .. tostring(settings.ringColor.b))
-		end
-		print("  ringTexture = " .. tostring(settings.ringTexture))
-		if settings.castColor then
-			print("  castColor = " .. tostring(settings.castColor.r) .. ", " .. tostring(settings.castColor.g) .. ", " .. tostring(settings.castColor.b))
-		end
-		print("  castStyle = " .. tostring(settings.castStyle))
-		print("  showOutOfCombat = " .. tostring(settings.showOutOfCombat))
-		print("  combatAlpha = " .. tostring(settings.combatAlpha))
-		print("  outOfCombatAlpha = " .. tostring(settings.outOfCombatAlpha))
-		print("  mouseTrail = " .. tostring(settings.mouseTrail))
-		print("  sparkleTrail = " .. tostring(settings.sparkleTrail))
-		print("  trailFadeTime = " .. tostring(settings.trailFadeTime))
-		if settings.trailColor then
-			print("  trailColor = " .. tostring(settings.trailColor.r) .. ", " .. tostring(settings.trailColor.g) .. ", " .. tostring(settings.trailColor.b))
-		end
-		if settings.sparkleColor then
-			print("  sparkleColor = " .. tostring(settings.sparkleColor.r) .. ", " .. tostring(settings.sparkleColor.g) .. ", " .. tostring(settings.sparkleColor.b))
-		end
-		print("  sparkleMultiplier = " .. tostring(settings.sparkleMultiplier))
-		print("  noDot = " .. tostring(settings.noDot))
+
+    if debugMode then
+        -- Debug Block
+        print("DEBUG ApplySettings - INPUT:")
+        print("  ringEnabled = " .. tostring(settings.ringEnabled))
+        print("  castEnabled = " .. tostring(settings.castEnabled))
+        print("  ringSize = " .. tostring(settings.ringSize))
+        if settings.ringColor then
+            print("  ringColor = " .. tostring(settings.ringColor.r) .. ", " .. tostring(settings.ringColor.g) .. ", " .. tostring(settings.ringColor.b))
+        end
+        print("  ringTexture = " .. tostring(settings.ringTexture))
+        if settings.castColor then
+            print("  castColor = " .. tostring(settings.castColor.r) .. ", " .. tostring(settings.castColor.g) .. ", " .. tostring(settings.castColor.b))
+        end
+        print("  castStyle = " .. tostring(settings.castStyle))
+        print("  showOutOfCombat = " .. tostring(settings.showOutOfCombat))
+        print("  combatAlpha = " .. tostring(settings.combatAlpha))
+        print("  outOfCombatAlpha = " .. tostring(settings.outOfCombatAlpha))
+        print("  mouseTrail = " .. tostring(settings.mouseTrail))
+        print("  sparkleTrail = " .. tostring(settings.sparkleTrail))
+        print("  trailFadeTime = " .. tostring(settings.trailFadeTime))
+        if settings.trailColor then
+            print("  trailColor = " .. tostring(settings.trailColor.r) .. ", " .. tostring(settings.trailColor.g) .. ", " .. tostring(settings.trailColor.b))
+        end
+        if settings.sparkleColor then
+            print("  sparkleColor = " .. tostring(settings.sparkleColor.r) .. ", " .. tostring(settings.sparkleColor.g) .. ", " .. tostring(settings.sparkleColor.b))
+        end
+        print("  sparkleMultiplier = " .. tostring(settings.sparkleMultiplier))
+        print("  noDot = " .. tostring(settings.noDot))
         print("  gcdEnabled = " .. tostring(gcdEnabled))
-		-- End Debug
-	end
-	
+        -- End Debug
+    end
+
     ringEnabled = settings.ringEnabled ~= false
     ringTexture = settings.ringTexture or DEFAULTS.ringTexture
     ringSize = settings.ringSize or DEFAULTS.ringSize
@@ -201,7 +201,7 @@ local function ApplySettings(settings)
     end
     noDot = settings.noDot or DEFAULTS.noDot
 
-	ringOutlineEnabled = settings.ringOutlineEnabled or false
+    ringOutlineEnabled = settings.ringOutlineEnabled or false
     ringOutlineSize = settings.ringOutlineSize or DEFAULTS.ringOutlineSize
     if settings.ringOutlineColor then
         ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b = settings.ringOutlineColor.r, settings.ringOutlineColor.g, settings.ringOutlineColor.b
@@ -239,30 +239,30 @@ local function ApplySettings(settings)
         sparkleColor.r, sparkleColor.g, sparkleColor.b = settings.sparkleColor.r, settings.sparkleColor.g, settings.sparkleColor.b
     end
     sparkleMultiplier = settings.sparkleMultiplier or DEFAULTS.sparkleMultiplier  -- Already 1.0 but now using DEFAULTS
-	
-	if debugMode then
-		-- Debug Block
-		print("DEBUG ApplySettings - FINAL VALUES:")
-		print("  ringEnabled = " .. tostring(ringEnabled))
-		print("  castEnabled = " .. tostring(castEnabled))
-		print("  ringSize = " .. tostring(ringSize))
-		print("  ringColor = " .. tostring(ringColor.r) .. ", " .. tostring(ringColor.g) .. ", " .. tostring(ringColor.b))
-		print("  ringTexture = " .. tostring(ringTexture))
-		print("  castColor = " .. tostring(castColor.r) .. ", " .. tostring(castColor.g) .. ", " .. tostring(castColor.b))
-		print("  currentCastStyle = " .. tostring(currentCastStyle))
-		print("  showOutOfCombat = " .. tostring(showOutOfCombat))
-		print("  combatAlpha = " .. tostring(combatAlpha))
-		print("  outOfCombatAlpha = " .. tostring(outOfCombatAlpha))
-		print("  mouseTrail = " .. tostring(mouseTrail))
-		print("  sparkleTrail = " .. tostring(sparkleTrail))
-		print("  trailFadeTime = " .. tostring(trailFadeTime))
-		print("  trailColor = " .. tostring(trailColor.r) .. ", " .. tostring(trailColor.g) .. ", " .. tostring(trailColor.b))
-		print("  sparkleColor = " .. tostring(sparkleColor.r) .. ", " .. tostring(sparkleColor.g) .. ", " .. tostring(sparkleColor.b))
-		print("  sparkleMultiplier = " .. tostring(sparkleMultiplier))
-		print("  noDot = " .. tostring(noDot))
+
+    if debugMode then
+        -- Debug Block
+        print("DEBUG ApplySettings - FINAL VALUES:")
+        print("  ringEnabled = " .. tostring(ringEnabled))
+        print("  castEnabled = " .. tostring(castEnabled))
+        print("  ringSize = " .. tostring(ringSize))
+        print("  ringColor = " .. tostring(ringColor.r) .. ", " .. tostring(ringColor.g) .. ", " .. tostring(ringColor.b))
+        print("  ringTexture = " .. tostring(ringTexture))
+        print("  castColor = " .. tostring(castColor.r) .. ", " .. tostring(castColor.g) .. ", " .. tostring(castColor.b))
+        print("  currentCastStyle = " .. tostring(currentCastStyle))
+        print("  showOutOfCombat = " .. tostring(showOutOfCombat))
+        print("  combatAlpha = " .. tostring(combatAlpha))
+        print("  outOfCombatAlpha = " .. tostring(outOfCombatAlpha))
+        print("  mouseTrail = " .. tostring(mouseTrail))
+        print("  sparkleTrail = " .. tostring(sparkleTrail))
+        print("  trailFadeTime = " .. tostring(trailFadeTime))
+        print("  trailColor = " .. tostring(trailColor.r) .. ", " .. tostring(trailColor.g) .. ", " .. tostring(trailColor.b))
+        print("  sparkleColor = " .. tostring(sparkleColor.r) .. ", " .. tostring(sparkleColor.g) .. ", " .. tostring(sparkleColor.b))
+        print("  sparkleMultiplier = " .. tostring(sparkleMultiplier))
+        print("  noDot = " .. tostring(noDot))
         print("  gcdEnabled = " .. tostring(gcdEnabled))
-		-- End Debug
-	end
+        -- End Debug
+    end
 end
 
 -- Apply "_no_dot" suffix if enabled
@@ -282,22 +282,22 @@ local function LoadSpecSettings()
     end
 
     local settings = profileManager:LoadSettings()
-    
+
     if settings and next(settings) then
         ApplySettings(settings)
 
-		-- Sanity check for legacy data to address a reported user issue.
-		if castEnabled == nil then castEnabled = DEFAULTS.castEnabled end
-		if not castColor or not castColor.r then castColor = { r = 1, g = 1, b = 1 } end
-    
-		-- Save corrected settings back
-		profileManager:SaveSettings(GetCurrentSettings())
-        
+        -- Sanity check for legacy data to address a reported user issue.
+        if castEnabled == nil then castEnabled = DEFAULTS.castEnabled end
+        if not castColor or not castColor.r then castColor = { r = 1, g = 1, b = 1 } end
+
+        -- Save corrected settings back
+        profileManager:SaveSettings(GetCurrentSettings())
+
     else
         -- First time defaults
         local _, class = UnitClass("player")
         local defaultClassColor = RAID_CLASS_COLORS[class]
-        
+
         ringEnabled = DEFAULTS.ringEnabled
         castEnabled = DEFAULTS.castEnabled
         ringSize = DEFAULTS.ringSize
@@ -315,19 +315,19 @@ local function LoadSpecSettings()
         sparkleColor = { r = 1, g = 1, b = 1 }
         sparkleMultiplier = DEFAULTS.sparkleMultiplier
         noDot = DEFAULTS.noDot
-		ringOutlineEnabled = DEFAULTS.ringOutlineEnabled
+        ringOutlineEnabled = DEFAULTS.ringOutlineEnabled
         ringOutlineSize = DEFAULTS.ringOutlineSize
         ringOutlineColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
         gcdEnabled = DEFAULTS.gcdEnabled
         gcdColor = { r = 1, g = 0.8, b = 0 }
-        
+
         -- Save defaults
         profileManager:SaveSettings(GetCurrentSettings())
-        
+
         -- Create character-level auto-profile on first login (new toons don't have a spec, so this is cleaner all 'round)
         local charKey, _ = profileManager:GetCharacterSpecKey()
         local autoProfileName = charKey
-        
+
         if not profileManager:ProfileExists(autoProfileName) then
             profileManager:SaveToProfile(autoProfileName, GetCurrentSettings())
             profileManager:SetActiveProfile(autoProfileName)
@@ -362,10 +362,10 @@ local function UpdateRingSize(size)
     SaveSpecSettings()
     if ring and ring:GetParent() then
         ring:GetParent():SetSize(ringSize, ringSize)
-		if ringOutline then
-			ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
-		end
-		if gcdSegments then
+        if ringOutline then
+            ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
+        end
+        if gcdSegments then
             local s = ringSize + GetEffectiveOutlineSize() + (ringSize * 0.156)
             for i = 1, NUM_CAST_SEGMENTS do
                 if gcdSegments[i] then gcdSegments[i]:SetSize(s, s) end
@@ -456,8 +456,8 @@ local function UpdateRingTexture(textureFile)
     if ring then
         ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
         if ringOutline then
-			ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
-		end
+            ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(textureFile))
+        end
     end
     if castFill then
         castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(textureFile))
@@ -475,7 +475,7 @@ end
 -- Spec specific Ring Color update
 local function UpdateRingColor(r, g, b)
     ringColor.r, ringColor.g, ringColor.b = r, g, b
-	GetSpecDB().ringColor = { r = r, g = g, b = b }
+    GetSpecDB().ringColor = { r = r, g = g, b = b }
     SaveSpecSettings()
     if ring then
         ring:SetVertexColor(r, g, b, 1)
@@ -487,7 +487,7 @@ local function UpdateCastColor(r, g, b)
     castColor.r, castColor.g, castColor.b = r, g, b
     GetSpecDB().castColor = { r = r, g = g, b = b }
     SaveSpecSettings()
-	if castFill then
+    if castFill then
         castFill:SetVertexColor(r, g, b, 1)
     end
 end
@@ -502,8 +502,8 @@ end
 local function ShouldShowAllowedByInstanceRules()
     local _, inInstance = IsInInstance()
     if inInstance ~= "none" then
-		return true
-	end
+        return true
+    end
     return showOutOfCombat
 end
 
@@ -517,18 +517,18 @@ local function UpdateRingVisibility()
     if ring then
         local shouldShow = ringEnabled and ShouldShowAllowedByInstanceRules()
         ring:SetShown(shouldShow)
-		if ringOutline then
+        if ringOutline then
             ringOutline:SetShown(ringOutlineEnabled and shouldShow)
         end
         if shouldShow then
             local inCombat = InCombatLockdown()
             local inInst, t = IsInInstance()
             local inInstance = inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario")
-            
+
             -- Use combat alpha if in actual combat or instance
             local alpha = (inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
             ring:SetAlpha(alpha)
-			if ringOutline then
+            if ringOutline then
                 ringOutline:SetAlpha(alpha)
             end
             if gcdSegments and not (gcdEnabled and ShouldShowAllowedByInstanceRules()) then
@@ -546,10 +546,10 @@ local function UpdateMouseTrailVisibility()
     local alpha = GetCursorAlpha()
 
     for i = 1, MAX_TRAIL_POINTS do
-		local point = trailBuffer[i]
-		if point.tex then point.tex:SetAlpha(mouseTrailActive and alpha or 0) end
-		if point.sparkle then point.sparkle:SetAlpha(mouseTrailActive and alpha or 0) end
-	end
+        local point = trailBuffer[i]
+        if point.tex then point.tex:SetAlpha(mouseTrailActive and alpha or 0) end
+        if point.sparkle then point.sparkle:SetAlpha(mouseTrailActive and alpha or 0) end
+    end
 end
 
 local function UpdateRingOutlineEnabled(enabled)
@@ -591,8 +591,8 @@ local function CreateCursorRing()
     ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
     ring:SetAllPoints()
     ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
-	
-	-- Outline ring (rendered below ring on BACKGROUND layer)
+
+    -- Outline ring (rendered below ring on BACKGROUND layer)
     ringOutline = f:CreateTexture(nil, "BACKGROUND")
     ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(GetSpecDB().ringTexture or "ring.tga"), "CLAMP")
     ringOutline:SetPoint("CENTER", f, "CENTER")
@@ -665,53 +665,53 @@ local function CreateCursorRing()
     end
 
     -- OnUpdate - cursor position only
-	local lastAlphaCheck = 0
+    local lastAlphaCheck = 0
     f:SetScript("OnUpdate", function(self, elapsed)
-		-- Cache UIParent rect (updated externally on scale/display change events)
-		if not cachedUILeft then
-			cachedUILeft, cachedUIBottom = UIParent:GetRect()
-		end
+        -- Cache UIParent rect (updated externally on scale/display change events)
+        if not cachedUILeft then
+            cachedUILeft, cachedUIBottom = UIParent:GetRect()
+        end
 
-		local x, y = GetCursorPosition()
-		local scale = UIParent:GetEffectiveScale()
-		x = x / scale - cachedUILeft
-		y = y / scale - cachedUIBottom
+        local x, y = GetCursorPosition()
+        local scale = UIParent:GetEffectiveScale()
+        x = x / scale - cachedUILeft
+        y = y / scale - cachedUIBottom
 
-		self:ClearAllPoints()
-		self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+        self:ClearAllPoints()
+        self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
 
-		-- Compute alpha once per frame
-		local cursorAlpha = GetCursorAlpha()
+        -- Compute alpha once per frame
+        local cursorAlpha = GetCursorAlpha()
 
-		-- Check alpha state periodically (every 0.5 seconds)
-		lastAlphaCheck = lastAlphaCheck + elapsed
-		if lastAlphaCheck >= 0.5 then
-			lastAlphaCheck = 0
-			if ring and ringEnabled and ShouldShowAllowedByInstanceRules() then
-				ring:SetAlpha(cursorAlpha)
-				if ringOutline and ringOutlineEnabled then
+        -- Check alpha state periodically (every 0.5 seconds)
+        lastAlphaCheck = lastAlphaCheck + elapsed
+        if lastAlphaCheck >= 0.5 then
+            lastAlphaCheck = 0
+            if ring and ringEnabled and ShouldShowAllowedByInstanceRules() then
+                ring:SetAlpha(cursorAlpha)
+                if ringOutline and ringOutlineEnabled then
                     ringOutline:SetAlpha(cursorAlpha)
                 end
-				-- Apply same alpha logic to cast fill
-				if castFill then
-					castFill:SetAlpha((castFill:GetAlpha() > 0) and cursorAlpha or 0)
-				end
+                -- Apply same alpha logic to cast fill
+                if castFill then
+                    castFill:SetAlpha((castFill:GetAlpha() > 0) and cursorAlpha or 0)
+                end
 
-				-- Apply to cast segments
-				if castSegments and not isEmpoweredCast then
-					for i = 1, NUM_CAST_SEGMENTS do
-						local seg = castSegments[i]
-						if seg then
-							local r, g, b, a = seg:GetVertexColor()
-							if a > 0 then
-								seg:SetVertexColor(r, g, b, cursorAlpha)
-							end
-						end
-					end
-				end
+                -- Apply to cast segments
+                if castSegments and not isEmpoweredCast then
+                    for i = 1, NUM_CAST_SEGMENTS do
+                        local seg = castSegments[i]
+                        if seg then
+                            local r, g, b, a = seg:GetVertexColor()
+                            if a > 0 then
+                                seg:SetVertexColor(r, g, b, cursorAlpha)
+                            end
+                        end
+                    end
+                end
 
-				-- Apply to active GCD segments
-				if gcdEnabled and gcdSegments then
+                -- Apply to active GCD segments
+                if gcdEnabled and gcdSegments then
                     for i = 1, NUM_CAST_SEGMENTS do
                         local seg = gcdSegments[i]
                         if seg then
@@ -723,98 +723,97 @@ local function CreateCursorRing()
                     end
                 end
 
-				-- Apply to active trail points
-				if mouseTrailActive then
-					for i = 1, MAX_TRAIL_POINTS do
-						local point = trailBuffer[i]
-						if point.tex then
-							local r, g, b = point.tex:GetVertexColor()
-							point.tex:SetVertexColor(r, g, b, cursorAlpha)
-						end
-						if point.sparkle then
-							local r, g, b = point.sparkle:GetVertexColor()
-							point.sparkle:SetVertexColor(r, g, b, cursorAlpha)
-						end
-					end
-				end
-			end
-		end
+                -- Apply to active trail points
+                if mouseTrailActive then
+                    for i = 1, MAX_TRAIL_POINTS do
+                        local point = trailBuffer[i]
+                        if point.tex then
+                            local r, g, b = point.tex:GetVertexColor()
+                            point.tex:SetVertexColor(r, g, b, cursorAlpha)
+                        end
+                        if point.sparkle then
+                            local r, g, b = point.sparkle:GetVertexColor()
+                            point.sparkle:SetVertexColor(r, g, b, cursorAlpha)
+                        end
+                    end
+                end
+            end
+        end
 
-		-- Mouse Trail
-		if mouseTrailActive then
-			local now = GetTime()
+        -- Mouse Trail
+        if mouseTrailActive then
+            local now = GetTime()
 
-			-- Write new point into circular buffer
-			trailTail = trailTail % MAX_TRAIL_POINTS + 1
-			local newPoint = trailBuffer[trailTail]
-			if trailCount == MAX_TRAIL_POINTS then
-				-- Overwriting oldest slot — hide its textures
-				if newPoint.tex then newPoint.tex:Hide() end
-				if newPoint.sparkle then newPoint.sparkle:Hide() end
-			else
-				trailCount = trailCount + 1
-			end
-			newPoint.x = x
-			newPoint.y = y
-			newPoint.created = now
+            -- Write new point into circular buffer
+            trailTail = trailTail % MAX_TRAIL_POINTS + 1
+            local newPoint = trailBuffer[trailTail]
+            if trailCount == MAX_TRAIL_POINTS then
+                -- Overwriting oldest slot — hide its textures
+                if newPoint.tex then newPoint.tex:Hide() end
+                if newPoint.sparkle then newPoint.sparkle:Hide() end
+            else
+                trailCount = trailCount + 1
+            end
+            newPoint.x = x
+            newPoint.y = y
+            newPoint.created = now
 
-			-- Iterate newest to oldest
-			for i = 0, trailCount - 1 do
-				local idx = (trailTail - i - 1) % MAX_TRAIL_POINTS + 1
-				local point = trailBuffer[idx]
-				local age = now - point.created
-				local fade = 1 - (age / (trailFadeTime or 1))
-				if fade <= 0 then
-					if point.tex then point.tex:Hide() end
-					if point.sparkle then point.sparkle:Hide() end
-				else
-					if not point.tex then point.tex = CreateTrailTexture(self) end
-					point.tex:ClearAllPoints()
-					point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
-					local rc = trailColor or { r=1, g=1, b=1 }
-					point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade*0.8,0,1))
-					point.tex:SetAlpha(fade * cursorAlpha)
-					point.tex:SetSize(ringSize*0.4*fade, ringSize*0.4*fade)
-					point.tex:Show()
-					if sparkleTrail then
-						if not point.sparkle then
-							point.sparkle = CreateSparkleTexture(self)
-							point.sparkle:SetBlendMode("ADD")  -- ensures smooth additive glow
-						end
+            -- Iterate newest to oldest
+            for i = 0, trailCount - 1 do
+                local idx = (trailTail - i - 1) % MAX_TRAIL_POINTS + 1
+                local point = trailBuffer[idx]
+                local age = now - point.created
+                local fade = 1 - (age / (trailFadeTime or 1))
+                if fade <= 0 then
+                    if point.tex then point.tex:Hide() end
+                    if point.sparkle then point.sparkle:Hide() end
+                else
+                    if not point.tex then point.tex = CreateTrailTexture(self) end
+                    point.tex:ClearAllPoints()
+                    point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
+                    local rc = trailColor or { r=1, g=1, b=1 }
+                    point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade*0.8,0,1))
+                    point.tex:SetAlpha(fade * cursorAlpha)
+                    point.tex:SetSize(ringSize*0.4*fade, ringSize*0.4*fade)
+                    point.tex:Show()
+                    if sparkleTrail then
+                        if not point.sparkle then
+                            point.sparkle = CreateSparkleTexture(self)
+                            point.sparkle:SetBlendMode("ADD")  -- ensures smooth additive glow
+                            local sc = sparkleColor or { r = 1, g = 1, b = 1 }
+                            point.sparkle:SetVertexColor(sc.r, sc.g, sc.b, 1)
+                        end
 
-						-- Circular distribution
-						local radius = ringSize * 0.3
-						local angle = math.random() * 2 * math.pi
-						local distance = (math.random() ^ 1.4) * radius -- Adjust center bias ( > 1 = more center bias)
-						local dx = math.cos(angle) * distance
-						local dy = math.sin(angle) * distance
+                        -- Circular distribution
+                        local radius = ringSize * 0.3
+                        local angle = math.random() * 2 * math.pi
+                        local distance = (math.random() ^ 1.4) * radius -- Adjust center bias ( > 1 = more center bias)
+                        local dx = math.cos(angle) * distance
+                        local dy = math.sin(angle) * distance
 
-						point.sparkle:ClearAllPoints()
-						point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
+                        point.sparkle:ClearAllPoints()
+                        point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
 
-						local sc = sparkleColor or { r = 1, g = 1, b = 1 }
-						point.sparkle:SetVertexColor(sc.r, sc.g, sc.b, 1)
+                        -- Fade slowly and smoothly
+                        local fadeSpeed = 0.1 -- lower = slower fade
+                        local fadeAdj = Clamp(fade / fadeSpeed, 0, 1) -- keeps alpha reaching 1
+                        point.sparkle:SetAlpha(fadeAdj * cursorAlpha)
 
-						-- Fade slowly and smoothly
-						local fadeSpeed = 0.1 -- lower = slower fade
-						local fadeAdj = Clamp(fade / fadeSpeed, 0, 1) -- keeps alpha reaching 1
-						point.sparkle:SetAlpha(fadeAdj * cursorAlpha)
-
-						-- Randomized size for softness / natural variance
-						local baseSize = radius * fade * 0.5 * (sparkleMultiplier or 1.0)
-						local variance = math.random() * baseSize * 0.5
-						point.sparkle:SetSize(baseSize + variance, baseSize + variance)
-						point.sparkle:Show()
-					end
-				end
-			end
-		end
-	end)
+                        -- Randomized size for softness / natural variance
+                        local baseSize = radius * fade * 0.5 * (sparkleMultiplier or 1.0)
+                        local variance = math.random() * baseSize * 0.5
+                        point.sparkle:SetSize(baseSize + variance, baseSize + variance)
+                        point.sparkle:Show()
+                    end
+                end
+            end
+        end
+    end)
 
     -- Separate ticker for cast progress updates (lower frequency)
     local castTicker = C_Timer.NewTicker(0.016, function()
         if not casting or not castEnabled then return end
-        
+
         local now = GetTime()
         local progress = 0
         local castName, _, _, castStartTime, castEndTime = UnitCastingInfo("player")
@@ -954,7 +953,7 @@ local function CreateOptionsPanel()
             UpdateShowOutOfCombat(showOutOfCombat)
         end
     })
-	
+
    -- Ring Size Slider
     local ringSizeSlider = OptionsPanel:AddSlider(panel, {
         key = "ringSize",
@@ -979,7 +978,7 @@ local function CreateOptionsPanel()
         end
     })
 
-	-- Combat Alpha Slider
+    -- Combat Alpha Slider
     local combatAlphaSlider = OptionsPanel:AddSlider(panel, {
         key = "combatAlpha",
         name = "CursorRingCombatAlphaSlider",
@@ -1032,7 +1031,7 @@ local function CreateOptionsPanel()
             end
         end
     })
-	
+
     -- Enable Ring Checkbox
     local ringEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "ringEnabled",
@@ -1051,8 +1050,8 @@ local function CreateOptionsPanel()
             UpdateRingVisibility()
         end
     })
-	
-	-- Enable Cast Ring Checkbox
+
+    -- Enable Cast Ring Checkbox
     local castEnabledCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "castEnabled",
         label = CursorRing_L["ENABLE_CAST"],
@@ -1068,7 +1067,7 @@ local function CreateOptionsPanel()
             SaveSpecSettings()
         end
     })
-	
+
     -- Ring Color Picker
     local ringColorData = specDB.ringColor or { r = 1, g = 1, b = 1 }
     local ringColorButton, ringColorTexture, ringColorLabel = OptionsPanel:AddColorPicker(panel, {
@@ -1111,8 +1110,8 @@ local function CreateOptionsPanel()
             OptionsPanel:UpdateColorPicker(panel, "ringColor", classColor.r, classColor.g, classColor.b)
         end
     })
-    
-	-- Ring Texture Dropdown (positioned to the right of Ring Color)
+
+    -- Ring Texture Dropdown (positioned to the right of Ring Color)
     local currentTexture = specDB.ringTexture or "ring.tga"
     local ringTextureOptions = {}
     for _, opt in ipairs(outerRingOptions) do
@@ -1135,7 +1134,7 @@ local function CreateOptionsPanel()
             currentTexture = value
             ringTexture = value
             GetSpecDB().ringTexture = value
-            
+
             local selectedOpt
             for _, opt in ipairs(outerRingOptions) do
                 if opt.file == value then
@@ -1143,7 +1142,7 @@ local function CreateOptionsPanel()
                     break
                 end
             end
-            
+
             if selectedOpt then
                 local supportedStyles = selectedOpt.supportedStyles or {"ring"}
                 local isSupported = false
@@ -1153,17 +1152,17 @@ local function CreateOptionsPanel()
                         break
                     end
                 end
-                
+
                 if not isSupported then
                     currentCastStyle = supportedStyles[1]
                     GetSpecDB().castStyle = currentCastStyle
                 end
             end
-            
+
             SaveSpecSettings()
             UpdateRingTexture(value)
             UpdateCastStyle(currentCastStyle)
-            
+
             if cursorRingOptionsPanel.RefreshStyleDropdown then
                 cursorRingOptionsPanel.RefreshStyleDropdown()
             end
@@ -1174,8 +1173,8 @@ local function CreateOptionsPanel()
      local noDotCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "noDot",
         label = CursorRing_L["REMOVE_CENTER_DOT"],
-		labelOffset = 100,
-		width = 150,
+        labelOffset = 100,
+        width = 150,
         default = specDB.noDot or false,
         anchor = ringTextureLabel,
         point = "TOPLEFT",
@@ -1189,7 +1188,7 @@ local function CreateOptionsPanel()
             UpdateRingTexture(ringTexture)
         end
     })
-	
+
     -- Cast Colour Picker
     local castColorData = specDB.castColor or { r = 1, g = 1, b = 1 }
     local castColorButton, castColorTexture, castColorLabel = OptionsPanel:AddColorPicker(panel, {
@@ -1278,7 +1277,7 @@ local function CreateOptionsPanel()
         end
     })
 
-	-- Outline Enable Checkbox
+    -- Outline Enable Checkbox
     local ringOutlineCheckbox = OptionsPanel:AddCheckbox(panel, {
         key = "ringOutlineEnabled",
         label = CursorRing_L["ENABLE_OUTLINE"],
@@ -1316,8 +1315,8 @@ local function CreateOptionsPanel()
             UpdateRingOutlineColor(r, g, b)
         end
     })
-	
-	-- Reset Button - ringOutlineColor
+
+    -- Reset Button - ringOutlineColor
     local resetButton = OptionsPanel:AddButton(panel, {
         key = "resetOutlineColor",
         text = CursorRing_L["RESET"],
@@ -1371,7 +1370,7 @@ local function CreateOptionsPanel()
                 break
             end
         end
-        
+
         local filteredOptions = {}
         for _, opt in ipairs(castStyleOptions) do
             for _, supportedStyle in ipairs(supportedStyles) do
@@ -1381,7 +1380,7 @@ local function CreateOptionsPanel()
                 end
             end
         end
-        
+
         local displayText = CursorRing_L["STYLE_RING"]
         for _, opt in ipairs(castStyleOptions) do
             if opt.value == currentCastStyle then
@@ -1464,6 +1463,13 @@ local function CreateOptionsPanel()
             sparkleColor.r, sparkleColor.g, sparkleColor.b = r, g, b
             GetSpecDB().sparkleColor = { r = r, g = g, b = b }
             SaveSpecSettings()
+
+            for i = 1, MAX_TRAIL_POINTS do
+                local point = trailBuffer[i]
+                if point.sparkle then
+                    point.sparkle:SetVertexColor(r, g, b, 1)
+                end
+            end
         end
     })
 
@@ -1556,7 +1562,7 @@ local function CreateOptionsPanel()
                 profileManager:SaveSettings(currentSettings)
                 profileNameInput:SetText("")
                 print(string.format(CursorRing_L["MSG_SAVED_PROFILE"], newProfileName))
-                
+
                 -- Refresh the dropdown and status
                 if cursorRingOptionsPanel.RefreshProfileDropdown then
                     cursorRingOptionsPanel.RefreshProfileDropdown()
@@ -1570,44 +1576,44 @@ local function CreateOptionsPanel()
         end
     })
 
-	-- Profile Selection Dropdown
-	local profileSelectLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-	profileSelectLabel:SetPoint("TOPLEFT", profileNameLabel, "BOTTOMLEFT", 0, -24)
-	profileSelectLabel:SetText(CursorRing_L["LOAD_PROFILE"])
+    -- Profile Selection Dropdown
+    local profileSelectLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    profileSelectLabel:SetPoint("TOPLEFT", profileNameLabel, "BOTTOMLEFT", 0, -24)
+    profileSelectLabel:SetText(CursorRing_L["LOAD_PROFILE"])
 
-	local function GetProfileOptions()
-		local options = {{ text = CursorRing_L["PROFILE_NONE"], value = nil }}
-		local profiles = profileManager:GetProfileList()
-		for _, name in ipairs(profiles) do
-			table.insert(options, { text = name, value = name })
-		end
-		return options
-	end
+    local function GetProfileOptions()
+        local options = {{ text = CursorRing_L["PROFILE_NONE"], value = nil }}
+        local profiles = profileManager:GetProfileList()
+        for _, name in ipairs(profiles) do
+            table.insert(options, { text = name, value = name })
+        end
+        return options
+    end
 
-	-- Store the onSelect value so it can be reused
-	local function ProfileSelectHandler(value)
-		if value then
-			-- Load the selected profile
-			local settings = profileManager:LoadFromProfile(value)
-			if settings then
-				ApplySettings(settings)
-				profileManager:SetActiveProfile(value)
-				profileManager:SaveSettings(GetCurrentSettings())
-				
-				-- Update all UI elements
-				UpdateRingSize(ringSize)
-				UpdateRingColor(ringColor.r, ringColor.g, ringColor.b)
-				UpdateRingTexture(ringTexture)
-				UpdateCastColor(castColor.r, castColor.g, castColor.b)
-				UpdateCastStyle(castStyle)
-				UpdateShowOutOfCombat(showOutOfCombat)
-				UpdateMouseTrail(mouseTrail)
-				UpdateRingVisibility()
-				UpdateMouseTrailVisibility()
-				UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
-				UpdateRingOutlineSize(ringOutlineSize)
-				
-				
+    -- Store the onSelect value so it can be reused
+    local function ProfileSelectHandler(value)
+        if value then
+            -- Load the selected profile
+            local settings = profileManager:LoadFromProfile(value)
+            if settings then
+                ApplySettings(settings)
+                profileManager:SetActiveProfile(value)
+                profileManager:SaveSettings(GetCurrentSettings())
+
+                -- Update all UI elements
+                UpdateRingSize(ringSize)
+                UpdateRingColor(ringColor.r, ringColor.g, ringColor.b)
+                UpdateRingTexture(ringTexture)
+                UpdateCastColor(castColor.r, castColor.g, castColor.b)
+                UpdateCastStyle(castStyle)
+                UpdateShowOutOfCombat(showOutOfCombat)
+                UpdateMouseTrail(mouseTrail)
+                UpdateRingVisibility()
+                UpdateMouseTrailVisibility()
+                UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+                UpdateRingOutlineSize(ringOutlineSize)
+
+
                 -- Update all controls
                 OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
                 OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
@@ -1631,31 +1637,31 @@ local function CreateOptionsPanel()
                 OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
                 OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
                 OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "gcdColor", gcdColor.r, gcdColor.g, gcdColor.b)
-				
-				cursorRingOptionsPanel.RefreshProfileDropdown()
-				print(string.format(CursorRing_L["MSG_LOADED_PROFILE"], value))
-				profileStatusLabel:SetText(string.format(CursorRing_L["ACTIVE_PROFILE"], value))
-			else
-				print(string.format(CursorRing_L["MSG_FAILED_LOAD"], value))
-			end
-		else
-			-- Switch back to character settings
-			profileManager:SetActiveProfile(nil)
-			LoadSpecSettings()
-			
-			-- Update all UI elements
-			UpdateRingSize(ringSize)
-			UpdateRingColor(ringColor.r, ringColor.g, ringColor.b)
-			UpdateRingTexture(ringTexture)
-			UpdateCastColor(castColor.r, castColor.g, castColor.b)
-			UpdateCastStyle(castStyle)
-			UpdateShowOutOfCombat(showOutOfCombat)
-			UpdateMouseTrail(mouseTrail)
-			UpdateRingVisibility()
-			UpdateMouseTrailVisibility()
-			UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
-			UpdateRingOutlineSize(ringOutlineSize)
-			
+
+                cursorRingOptionsPanel.RefreshProfileDropdown()
+                print(string.format(CursorRing_L["MSG_LOADED_PROFILE"], value))
+                profileStatusLabel:SetText(string.format(CursorRing_L["ACTIVE_PROFILE"], value))
+            else
+                print(string.format(CursorRing_L["MSG_FAILED_LOAD"], value))
+            end
+        else
+            -- Switch back to character settings
+            profileManager:SetActiveProfile(nil)
+            LoadSpecSettings()
+
+            -- Update all UI elements
+            UpdateRingSize(ringSize)
+            UpdateRingColor(ringColor.r, ringColor.g, ringColor.b)
+            UpdateRingTexture(ringTexture)
+            UpdateCastColor(castColor.r, castColor.g, castColor.b)
+            UpdateCastStyle(castStyle)
+            UpdateShowOutOfCombat(showOutOfCombat)
+            UpdateMouseTrail(mouseTrail)
+            UpdateRingVisibility()
+            UpdateMouseTrailVisibility()
+            UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+            UpdateRingOutlineSize(ringOutlineSize)
+
             -- Update all controls
             OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
             OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
@@ -1679,28 +1685,28 @@ local function CreateOptionsPanel()
             OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
             OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
             OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "gcdColor", gcdColor.r, gcdColor.g, gcdColor.b)
-			
-			cursorRingOptionsPanel.RefreshProfileDropdown()
-			print(CursorRing_L["MSG_USING_CHAR"])
-			profileStatusLabel:SetText(CursorRing_L["ACTIVE_PROFILE_NONE"])
-		end
-	end
 
-	local currentProfile = profileManager:GetActiveProfile()
-	local profileDropdown, profileDropdownLabel = OptionsPanel:AddDropdown(panel, {
-		key = "profileSelect",
-		label = "",
-		labelOffset = 0,
-		width = 200,
-		default = currentProfile,
-		options = GetProfileOptions(),
-		anchor = profileSelectLabel,
-		point = "LEFT",
-		relativePoint = "RIGHT",
-		xOffset = 10,
-		yOffset = 0,
-		onSelect = ProfileSelectHandler
-	})
+            cursorRingOptionsPanel.RefreshProfileDropdown()
+            print(CursorRing_L["MSG_USING_CHAR"])
+            profileStatusLabel:SetText(CursorRing_L["ACTIVE_PROFILE_NONE"])
+        end
+    end
+
+    local currentProfile = profileManager:GetActiveProfile()
+    local profileDropdown, profileDropdownLabel = OptionsPanel:AddDropdown(panel, {
+        key = "profileSelect",
+        label = "",
+        labelOffset = 0,
+        width = 200,
+        default = currentProfile,
+        options = GetProfileOptions(),
+        anchor = profileSelectLabel,
+        point = "LEFT",
+        relativePoint = "RIGHT",
+        xOffset = 10,
+        yOffset = 0,
+        onSelect = ProfileSelectHandler
+    })
 
     -- Delete Profile Button
     local deleteProfileButton = OptionsPanel:AddButton(panel, {
@@ -1713,56 +1719,56 @@ local function CreateOptionsPanel()
         relativePoint = "LEFT",
         xOffset = 230,
         yOffset = 0,
-		onClick = function()
-			local activeProfile = profileManager:GetActiveProfile()
-			if activeProfile then
-				profileManager:DeleteProfile(activeProfile)
-				
-				-- Always clean up and reset to defaults
-				profileManager:SetActiveProfile(nil)
-				
-				-- Reset all values to defaults
-				local _, class = UnitClass("player")
-				local defaultClassColor = RAID_CLASS_COLORS[class]
-				
-				ringEnabled = DEFAULTS.ringEnabled
-				castEnabled = DEFAULTS.castEnabled
-				ringSize = DEFAULTS.ringSize
-				showOutOfCombat = DEFAULTS.showOutOfCombat
-				combatAlpha = DEFAULTS.combatAlpha
-				outOfCombatAlpha = DEFAULTS.outOfCombatAlpha
-				ringTexture = DEFAULTS.ringTexture
-				ringColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
-				castColor = { r = 1, g = 1, b = 1 }
-				castStyle = DEFAULTS.castStyle
-				currentCastStyle = DEFAULTS.castStyle
-				mouseTrail = DEFAULTS.mouseTrail
-				sparkleTrail = DEFAULTS.sparkleTrail
-				trailFadeTime = DEFAULTS.trailFadeTime
-				trailColor = { r = 1, g = 1, b = 1 }
-				sparkleColor = { r = 1, g = 1, b = 1 }
-				sparkleMultiplier = DEFAULTS.sparkleMultiplier
-				noDot = DEFAULTS.noDot
-				ringOutlineEnabled = DEFAULTS.ringOutlineEnabled
+        onClick = function()
+            local activeProfile = profileManager:GetActiveProfile()
+            if activeProfile then
+                profileManager:DeleteProfile(activeProfile)
+
+                -- Always clean up and reset to defaults
+                profileManager:SetActiveProfile(nil)
+
+                -- Reset all values to defaults
+                local _, class = UnitClass("player")
+                local defaultClassColor = RAID_CLASS_COLORS[class]
+
+                ringEnabled = DEFAULTS.ringEnabled
+                castEnabled = DEFAULTS.castEnabled
+                ringSize = DEFAULTS.ringSize
+                showOutOfCombat = DEFAULTS.showOutOfCombat
+                combatAlpha = DEFAULTS.combatAlpha
+                outOfCombatAlpha = DEFAULTS.outOfCombatAlpha
+                ringTexture = DEFAULTS.ringTexture
+                ringColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
+                castColor = { r = 1, g = 1, b = 1 }
+                castStyle = DEFAULTS.castStyle
+                currentCastStyle = DEFAULTS.castStyle
+                mouseTrail = DEFAULTS.mouseTrail
+                sparkleTrail = DEFAULTS.sparkleTrail
+                trailFadeTime = DEFAULTS.trailFadeTime
+                trailColor = { r = 1, g = 1, b = 1 }
+                sparkleColor = { r = 1, g = 1, b = 1 }
+                sparkleMultiplier = DEFAULTS.sparkleMultiplier
+                noDot = DEFAULTS.noDot
+                ringOutlineEnabled = DEFAULTS.ringOutlineEnabled
                 ringOutlineSize = DEFAULTS.ringOutlineSize
                 ringOutlineColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
-				
-				-- Save defaults to character settings
-				profileManager:SaveSettings(GetCurrentSettings())
-				
-				-- Update all UI elements
-				UpdateRingSize(ringSize)
-				UpdateRingColor(ringColor.r, ringColor.g, ringColor.b)
-				UpdateRingTexture(ringTexture)
-				UpdateCastColor(castColor.r, castColor.g, castColor.b)
-				UpdateCastStyle(castStyle)
-				UpdateShowOutOfCombat(showOutOfCombat)
-				UpdateMouseTrail(mouseTrail)
-				UpdateRingVisibility()
-				UpdateMouseTrailVisibility()
-				UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
-				UpdateRingOutlineSize(ringOutlineSize)
-				
+
+                -- Save defaults to character settings
+                profileManager:SaveSettings(GetCurrentSettings())
+
+                -- Update all UI elements
+                UpdateRingSize(ringSize)
+                UpdateRingColor(ringColor.r, ringColor.g, ringColor.b)
+                UpdateRingTexture(ringTexture)
+                UpdateCastColor(castColor.r, castColor.g, castColor.b)
+                UpdateCastStyle(castStyle)
+                UpdateShowOutOfCombat(showOutOfCombat)
+                UpdateMouseTrail(mouseTrail)
+                UpdateRingVisibility()
+                UpdateMouseTrailVisibility()
+                UpdateRingOutlineColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
+                UpdateRingOutlineSize(ringOutlineSize)
+
                 -- Update all controls
                 OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
                 OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
@@ -1786,50 +1792,50 @@ local function CreateOptionsPanel()
                 OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
                 OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
                 OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "gcdColor", gcdColor.r, gcdColor.g, gcdColor.b)
-				
-				
-				-- Refresh dropdown
-				cursorRingOptionsPanel.RefreshProfileDropdown()
-				
-				-- Verify deletion
-				if not profileManager:ProfileExists(activeProfile) then
-					print(string.format(CursorRing_L["MSG_DELETED_PROFILE"], activeProfile))
-				else
-					print(string.format(CursorRing_L["MSG_FAILED_DELETE"], activeProfile))
-				end
-				
-				profileStatusLabel:SetText(CursorRing_L["ACTIVE_PROFILE_NONE"])
-			else
-				print(CursorRing_L["MSG_NO_PROFILE"])
-			end
-		end
+
+
+                -- Refresh dropdown
+                cursorRingOptionsPanel.RefreshProfileDropdown()
+
+                -- Verify deletion
+                if not profileManager:ProfileExists(activeProfile) then
+                    print(string.format(CursorRing_L["MSG_DELETED_PROFILE"], activeProfile))
+                else
+                    print(string.format(CursorRing_L["MSG_FAILED_DELETE"], activeProfile))
+                end
+
+                profileStatusLabel:SetText(CursorRing_L["ACTIVE_PROFILE_NONE"])
+            else
+                print(CursorRing_L["MSG_NO_PROFILE"])
+            end
+        end
     })
 
     -- Function to refresh profile dropdown
-	function cursorRingOptionsPanel.RefreshProfileDropdown()
-		local options = GetProfileOptions()
-		local activeProfile = profileManager:GetActiveProfile()
-		local displayText = activeProfile or CursorRing_L["PROFILE_NONE"]
-		
-		local dropdown = panel.elements["profileSelect"].dropdown
-		
-		-- Reinitialize dropdown with current profile list
-		UIDropDownMenu_Initialize(dropdown, function(self)
-			for _, opt in ipairs(options) do
-				local info = UIDropDownMenu_CreateInfo()
-				info.text = opt.text
-				info.arg1 = opt.value
-				info.func = function(self, value)
-					ProfileSelectHandler(value)
-				end
-				info.checked = (activeProfile == opt.value)
-				UIDropDownMenu_AddButton(info)
-			end
-		end)
-		
-		UIDropDownMenu_SetSelectedValue(dropdown, activeProfile)
-		UIDropDownMenu_SetText(dropdown, displayText)
-	end
+    function cursorRingOptionsPanel.RefreshProfileDropdown()
+        local options = GetProfileOptions()
+        local activeProfile = profileManager:GetActiveProfile()
+        local displayText = activeProfile or CursorRing_L["PROFILE_NONE"]
+
+        local dropdown = panel.elements["profileSelect"].dropdown
+
+        -- Reinitialize dropdown with current profile list
+        UIDropDownMenu_Initialize(dropdown, function(self)
+            for _, opt in ipairs(options) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = opt.text
+                info.arg1 = opt.value
+                info.func = function(self, value)
+                    ProfileSelectHandler(value)
+                end
+                info.checked = (activeProfile == opt.value)
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+
+        UIDropDownMenu_SetSelectedValue(dropdown, activeProfile)
+        UIDropDownMenu_SetText(dropdown, displayText)
+    end
 
     -- Store references for UpdateOptionsPanel
     cursorRingOptionsPanel.ringColorTexture = ringColorTexture
@@ -1850,22 +1856,22 @@ local function UpdateOptionsPanel()
     -- Update all controls
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "showOutOfCombat", showOutOfCombat or false)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringEnabled", ringEnabled ~= false)
-	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", castEnabled ~= false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "castEnabled", castEnabled ~= false)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
-	OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
+    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "sparkleTrail", sparkleTrail or false)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "noDot", noDot or false)
-	OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringOutlineEnabled", ringOutlineEnabled or false)
+    OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "ringOutlineEnabled", ringOutlineEnabled or false)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringOutlineSize", ringOutlineSize or 4)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "gcdEnabled", gcdEnabled ~= false)
 
     -- Update color pickers
     OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringOutlineColor", ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b)
-	OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
+    OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "ringColor", ringColor.r, ringColor.g, ringColor.b)
     OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "castColor", castColor.r, castColor.g, castColor.b)
     OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "trailColor", trailColor.r, trailColor.g, trailColor.b)
     OptionsPanel:UpdateColorPicker(cursorRingOptionsPanel, "sparkleColor", sparkleColor.r, sparkleColor.g, sparkleColor.b)
@@ -1889,14 +1895,14 @@ local function UpdateOptionsPanel()
     if cursorRingOptionsPanel.RefreshStyleDropdown then
         cursorRingOptionsPanel.RefreshStyleDropdown()
     end
- 
+
     -- Update profile status
     if cursorRingOptionsPanel.profileStatusLabel then
         local activeProfile = profileManager:GetActiveProfile()
         local statusText = activeProfile and string.format(CursorRing_L["ACTIVE_PROFILE"], activeProfile) or CursorRing_L["ACTIVE_PROFILE_NONE"]
         cursorRingOptionsPanel.profileStatusLabel:SetText(statusText)
     end
-    
+
     -- Refresh profile dropdown
     if cursorRingOptionsPanel.RefreshProfileDropdown then
         cursorRingOptionsPanel.RefreshProfileDropdown()
@@ -1934,23 +1940,23 @@ addon:SetScript("OnEvent", function(self,event,...)
         UpdateMouseTrailVisibility()
         if ring then
             ring:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(ringTexture))
-			ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
+            ring:SetVertexColor(ringColor.r, ringColor.g, ringColor.b, 1)
             if debugMode then
-				print(string.format(CursorRing_L["MSG_DEBUG_TEXTURE"], ringTexture))
-			end
+                print(string.format(CursorRing_L["MSG_DEBUG_TEXTURE"], ringTexture))
+            end
         end
         if castFill then
             castFill:SetTexture("Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture))
-			castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
+            castFill:SetVertexColor(castColor.r, castColor.g, castColor.b, 1)
         end
-		if ringOutline then
+        if ringOutline then
             ringOutline:SetTexture("Interface\\AddOns\\CursorRing\\"..ApplyNoDotSuffix(ringTexture))
             ringOutline:SetVertexColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b, 1)
         end
     elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" or event=="ZONE_CHANGED_NEW_AREA" or event=="ZONE_CHANGED_INDOORS" or event=="ZONE_CHANGED" then
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
-	elseif event=="UNIT_SPELLCAST_START" or event=="UNIT_SPELLCAST_CHANNEL_START" then
+    elseif event=="UNIT_SPELLCAST_START" or event=="UNIT_SPELLCAST_CHANNEL_START" then
         local unit = ...
         if unit=="player" then casting = true end
     elseif event=="UNIT_SPELLCAST_STOP" or event=="UNIT_SPELLCAST_CHANNEL_STOP" then
@@ -1996,8 +2002,8 @@ addon:SetScript("OnEvent", function(self,event,...)
         if info and info.isOnGCD then
             gcdStart, gcdDuration = info.startTime, info.duration
         end
-	elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
-		cachedUILeft, cachedUIBottom = nil, nil
+    elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
+        cachedUILeft, cachedUIBottom = nil, nil
     elseif event == "ADDON_LOADED" then
         local addonName = ...
         if addonName == "CursorRing" then
