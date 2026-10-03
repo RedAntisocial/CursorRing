@@ -207,7 +207,12 @@ local function ApplySettings(settings)
         ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b = settings.ringOutlineColor.r, settings.ringOutlineColor.g, settings.ringOutlineColor.b
     end
 
-    gcdEnabled = settings.gcdEnabled ~= false
+    if settings.gcdEnabled == nil then
+        gcdEnabled = DEFAULTS.gcdEnabled
+    else
+        gcdEnabled = settings.gcdEnabled
+    end
+
     if settings.gcdColor then
         gcdColor.r, gcdColor.g, gcdColor.b = settings.gcdColor.r, settings.gcdColor.g, settings.gcdColor.b
     end
@@ -618,18 +623,18 @@ local function CreateCursorRing()
     end
 
     -- GCD Ticker
+    local gcdWasActive = false
     local gcdTicker = C_Timer.NewTicker(0.016, function()
         if not gcdEnabled then return end
 
-        local shouldShow = gcdEnabled and ShouldShowAllowedByInstanceRules()
-        local progress = 0
+        local elapsed = gcdStart > 0 and (GetTime() - gcdStart) or 0
+        local isActive = gcdStart > 0 and gcdDuration > 0 and elapsed < gcdDuration
 
-        if gcdStart > 0 and gcdDuration > 0 then
-            local elapsed = GetTime() - gcdStart
-            if elapsed < gcdDuration then
-                progress = Clamp(1 - (elapsed / gcdDuration), 0, 1)
-            end
-        end
+        -- Early exit if nothing is going on with GCD.
+        if not isActive and not gcdWasActive then return end
+
+        local shouldShow = ShouldShowAllowedByInstanceRules()
+        local progress = isActive and Clamp(1 - (elapsed / gcdDuration), 0, 1) or 0
 
         local numLit = math.floor(progress * NUM_CAST_SEGMENTS + 0.5)
         for i = 1, NUM_CAST_SEGMENTS do
@@ -637,6 +642,7 @@ local function CreateCursorRing()
                 gcdSegments[i]:SetVertexColor(gcdColor.r, gcdColor.g, gcdColor.b, shouldShow and i <= numLit and 1 or 0)
             end
         end
+        gcdWasActive = isActive
     end)
 
     -- Mouse Trail
