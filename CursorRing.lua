@@ -408,33 +408,31 @@ local function UpdateCastStyle(style)
     if not ring or not ring:GetParent() then return end
 
     local f = ring:GetParent()
-    -- Clear existing segments (fix for segments not sodding off when changing styles)
-    if castSegments then
+    local texturePath
+    if castStyle == "fill" then
+        texturePath = "Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)
+    elseif castStyle == "wedge" then
+        texturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
+    else
+        texturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
+    end
+
+    -- Create segments once, then reuse them later instead of recreating them
+    if not castSegments then
+        castSegments = {}
         for i=1,NUM_CAST_SEGMENTS do
-            if castSegments[i] then
-                castSegments[i]:Hide()
-                castSegments[i] = nil
-            end
+            local segment = f:CreateTexture(nil, "BACKGROUND")
+            segment:SetAllPoints()
+            segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
+            castSegments[i] = segment
         end
     end
-    castSegments = {}
 
-    -- Create segments
+    -- Update existing segments (fix for segments not sodding off when changing styles)
     for i=1,NUM_CAST_SEGMENTS do
-        local segment = f:CreateTexture(nil, "BACKGROUND")
-        local texturePath
-        if castStyle == "fill" then
-            texturePath = "Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)
-        elseif castStyle == "wedge" then
-            texturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
-        else
-            texturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
-        end
+        local segment = castSegments[i]
         segment:SetTexture(texturePath, "CLAMP")
-        segment:SetAllPoints()
-        segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
         segment:SetVertexColor(1, 1, 1, 0)
-        castSegments[i] = segment
     end
     if castStyle == "fill" and castFill then
         castFill:Show()
@@ -596,25 +594,6 @@ local function CreateCursorRing()
     ringOutline:SetSize(ringSize + GetEffectiveOutlineSize(), ringSize + GetEffectiveOutlineSize())
     ringOutline:SetVertexColor(ringOutlineColor.r, ringOutlineColor.g, ringOutlineColor.b, 1)
     ringOutline:SetShown(ringOutlineEnabled)
-
-    -- Cast segments
-    castSegments = {}
-    for i = 1, NUM_CAST_SEGMENTS do
-        local segment = f:CreateTexture(nil, "ARTWORK")
-        local texturePath
-        if castStyle == "fill" then
-            texturePath = "Interface\\AddOns\\CursorRing\\" .. GetFillTextureForRing(ringTexture)
-        elseif castStyle == "wedge" then
-            texturePath = "Interface\\AddOns\\CursorRing\\cast_wedge.tga"
-        else
-            texturePath = "Interface\\AddOns\\CursorRing\\cast_segment.tga"
-        end
-        segment:SetTexture(texturePath, "CLAMP")
-        segment:SetAllPoints()
-        segment:SetRotation(math.rad((i-1)*(360/NUM_CAST_SEGMENTS)))
-        segment:SetVertexColor(1, 1, 1, 0)
-        castSegments[i] = segment
-    end
 
     -- Cast Fill (for scaling animation)
     castFill = f:CreateTexture(nil, "OVERLAY")
