@@ -677,7 +677,6 @@ local function CreateCursorRing()
         x = x / scale - cachedUILeft
         y = y / scale - cachedUIBottom
 
-        self:ClearAllPoints()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
 
         -- Compute alpha once per frame
@@ -769,7 +768,7 @@ local function CreateCursorRing()
                     if point.sparkle then point.sparkle:Hide() end
                 else
                     if not point.tex then point.tex = CreateTrailTexture(self) end
-                    point.tex:ClearAllPoints()
+
                     point.tex:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x, point.y)
                     local rc = trailColor or { r=1, g=1, b=1 }
                     point.tex:SetVertexColor(rc.r, rc.g, rc.b, Clamp(fade*0.8,0,1))
@@ -791,7 +790,6 @@ local function CreateCursorRing()
                         local dx = math.cos(angle) * distance
                         local dy = math.sin(angle) * distance
 
-                        point.sparkle:ClearAllPoints()
                         point.sparkle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", point.x + dx, point.y + dy)
 
                         -- Fade slowly and smoothly
