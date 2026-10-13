@@ -1,4 +1,4 @@
-## Interface: 16001, 120150
+## Interface: 16001, 120105
 ## Title: Cursor Ring
 ## Notes: Puts a persistent class-coloured or preference-coloured ring and cast-ring around your mouse cursor.
 ## Author: Periago - Dalaran
