@@ -35,6 +35,8 @@ local trailTail = 0
 local trailCount = 0
 local MAX_TRAIL_POINTS = 20
 local cachedUILeft, cachedUIBottom
+local fishingAlpha = 1.0
+local isFishing = false
 
 -- Pre-allocate trail point tables (textures still created lazily)
 for i = 1, MAX_TRAIL_POINTS do
@@ -42,6 +44,8 @@ for i = 1, MAX_TRAIL_POINTS do
 end
 
 local NUM_CAST_SEGMENTS = 180
+
+local FISHING_SPELL_IDS = { [7620] = true }
 
 -- Adding a single defaults table because I keep mismatching when I define them all over the place.
 local DEFAULTS = {
@@ -53,6 +57,7 @@ local DEFAULTS = {
     showOutOfCombat = true,
     combatAlpha = 1.0,
     outOfCombatAlpha = 1.0,
+    fishingAlpha = 1.0,
     castStyle = "ring",
     mouseTrail = false,
     trailFadeTime = 1.0,
@@ -96,7 +101,7 @@ local function InitializeProfileManager()
             "castColor", "castStyle", "showOutOfCombat", "combatAlpha", "outOfCombatAlpha",
             "mouseTrail", "sparkleTrail", "trailFadeTime", "trailColor", "sparkleColor",
             "sparkleMultiplier", "noDot", "ringOutlineEnabled", "ringOutlineSize", "ringOutlineColor",
-            "gcdEnabled", "gcdColor"
+            "gcdEnabled", "gcdColor", "fishingAlpha"
         },
         onProfileChanged = function(profileName)
         end
@@ -116,6 +121,7 @@ local function GetCurrentSettings()
         showOutOfCombat = showOutOfCombat,
         combatAlpha = combatAlpha,
         outOfCombatAlpha = outOfCombatAlpha,
+        fishingAlpha = fishingAlpha,
         mouseTrail = mouseTrail,
         sparkleTrail = sparkleTrail,
         trailFadeTime = trailFadeTime,
@@ -143,6 +149,7 @@ local function GetCurrentSettings()
         print("  showOutOfCombat = " .. tostring(showOutOfCombat))
         print("  combatAlpha = " .. tostring(combatAlpha))
         print("  outOfCombatAlpha = " .. tostring(outOfCombatAlpha))
+        print("  fishingAlpha = " .. tostring(fishingAlpha))
         print("  mouseTrail = " .. tostring(mouseTrail))
         print("  sparkleTrail = " .. tostring(sparkleTrail))
         print("  trailFadeTime = " .. tostring(trailFadeTime))
@@ -220,6 +227,7 @@ local function ApplySettings(settings)
     showOutOfCombat = settings.showOutOfCombat ~= false
     combatAlpha = settings.combatAlpha or DEFAULTS.combatAlpha
     outOfCombatAlpha = settings.outOfCombatAlpha or DEFAULTS.outOfCombatAlpha
+    fishingAlpha = settings.fishingAlpha or DEFAULTS.fishingAlpha
 
     castEnabled = settings.castEnabled ~= false
     if settings.castColor then
@@ -304,6 +312,7 @@ local function LoadSpecSettings()
         showOutOfCombat = DEFAULTS.showOutOfCombat
         combatAlpha = DEFAULTS.combatAlpha
         outOfCombatAlpha = DEFAULTS.outOfCombatAlpha
+        fishingAlpha = DEFAULTS.fishingAlpha
         ringTexture = DEFAULTS.ringTexture
         ringColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
         castColor = { r = 1, g = 1, b = 1 }
@@ -509,6 +518,7 @@ end
 
 -- Compute active alpha for any cursor element
 local function GetCursorAlpha()
+    if isFishing then return fishingAlpha or 1.0 end
     local inCombat = InCombatLockdown() or UnitAffectingCombat("player")
     return inCombat and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
 end
@@ -526,7 +536,7 @@ local function UpdateRingVisibility()
             local inInstance = inInst and (t=="party" or t=="raid" or t=="pvp" or t=="arena" or t=="scenario")
 
             -- Use combat alpha if in actual combat or instance
-            local alpha = (inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0)
+            local alpha = isFishing and (fishingAlpha or 1.0) or ((inCombat or inInstance) and (combatAlpha or 1.0) or (outOfCombatAlpha or 1.0))
             ring:SetAlpha(alpha)
             if ringOutline then
                 ringOutline:SetAlpha(alpha)
@@ -853,9 +863,11 @@ local function CreateCursorRing()
         progress = Clamp(progress, 0, 1)
 
         local shouldShow = ringEnabled and ShouldShowAllowedByInstanceRules()
+        local castAlpha = isFishing and (fishingAlpha or 1.0) or 1
+
         -- Fill style
         if castStyle == "fill" and castFill then
-            castFill:SetAlpha(shouldShow and progress > 0 and 1 or 0)
+            castFill:SetAlpha(shouldShow and progress > 0 and castAlpha or 0)
             local size = ringSize * math.max(progress, 0.01)
             castFill:SetSize(size, size)
         end
@@ -872,7 +884,7 @@ local function CreateCursorRing()
                                 castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and 1 or 0)
                             end
                         else
-                            castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and i <= numLit and 1 or 0)
+                            castSegments[i]:SetVertexColor(castColor.r, castColor.g, castColor.b, shouldShow and i <= numLit and castAlpha or 0)
                         end
                     end
                 end
@@ -968,6 +980,7 @@ local function CreateOptionsPanel()
         key = "ringSize",
         name = "CursorRingSizeSlider",
         label = CursorRing_L["RING_SIZE"],
+        width = 120,
         min = 16,
         max = 256,
         step = 1,
@@ -992,6 +1005,7 @@ local function CreateOptionsPanel()
         key = "combatAlpha",
         name = "CursorRingCombatAlphaSlider",
         label = CursorRing_L["COMBAT_OPACITY"],
+        width = 120,
         min = 0,
         max = 1,
         step = 0.05,
@@ -1001,7 +1015,7 @@ local function CreateOptionsPanel()
         anchor = ringSizeSlider,
         point = "TOPLEFT",
         relativePoint = "TOPLEFT",
-        xOffset = 200,
+        xOffset = 150,
         yOffset = 0,
         onValueChanged = function(value)
             combatAlpha = value
@@ -1019,6 +1033,7 @@ local function CreateOptionsPanel()
         key = "outOfCombatAlpha",
         name = "CursorRingOutOfCombatAlphaSlider",
         label = CursorRing_L["OUT_OF_COMBAT_OPACITY"],
+        width = 120,
         min = 0,
         max = 1,
         step = 0.05,
@@ -1028,7 +1043,7 @@ local function CreateOptionsPanel()
         anchor = combatAlphaSlider,
         point = "TOPLEFT",
         relativePoint = "TOPLEFT",
-        xOffset = 200,
+        xOffset = 150,
         yOffset = 0,
         onValueChanged = function(value)
             outOfCombatAlpha = value
@@ -1037,6 +1052,34 @@ local function CreateOptionsPanel()
             -- Update ring alpha if out of combat
             if ring and not InCombatLockdown() then
                 ring:SetAlpha(outOfCombatAlpha)
+            end
+        end
+    })
+
+    -- Fishing Alpha Slider
+    local fishingAlphaSlider = OptionsPanel:AddSlider(panel, {
+        key = "fishingAlpha",
+        name = "CursorRingFishingAlphaSlider",
+        label = CursorRing_L["FISHING_OPACITY"],
+        width = 120,
+        min = 0,
+        max = 1,
+        step = 0.05,
+        default = specDB.fishingAlpha or 1.0,
+        lowText = CursorRing_L["PCT_0"],
+        highText = CursorRing_L["PCT_100"],
+        anchor = outOfCombatAlphaSlider,
+        point = "TOPLEFT",
+        relativePoint = "TOPLEFT",
+        xOffset = 150,
+        yOffset = 0,
+        onValueChanged = function(value)
+            fishingAlpha = value
+            GetSpecDB().fishingAlpha = fishingAlpha
+            SaveSpecSettings()
+            -- Update ring alpha if currently fishing
+            if ring and isFishing then
+                ring:SetAlpha(fishingAlpha)
             end
         end
     })
@@ -1630,6 +1673,7 @@ local function CreateOptionsPanel()
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "fishingAlpha", fishingAlpha or 1.0)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
                 OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
@@ -1678,6 +1722,7 @@ local function CreateOptionsPanel()
             OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
             OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
             OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
+            OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "fishingAlpha", fishingAlpha or 1.0)
             OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
             OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
             OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
@@ -1746,6 +1791,7 @@ local function CreateOptionsPanel()
                 showOutOfCombat = DEFAULTS.showOutOfCombat
                 combatAlpha = DEFAULTS.combatAlpha
                 outOfCombatAlpha = DEFAULTS.outOfCombatAlpha
+                fishingAlpha = DEFAULTS.fishingAlpha
                 ringTexture = DEFAULTS.ringTexture
                 ringColor = { r = defaultClassColor.r, g = defaultClassColor.g, b = defaultClassColor.b }
                 castColor = { r = 1, g = 1, b = 1 }
@@ -1785,6 +1831,7 @@ local function CreateOptionsPanel()
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
+                OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "fishingAlpha", fishingAlpha or 1.0)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
                 OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
                 OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
@@ -1869,6 +1916,7 @@ local function UpdateOptionsPanel()
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "ringSize", ringSize or 48)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "combatAlpha", combatAlpha)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "outOfCombatAlpha", outOfCombatAlpha)
+    OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "fishingAlpha", fishingAlpha or 1.0)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "trailFadeTime", trailFadeTime or 1.0)
     OptionsPanel:UpdateSlider(cursorRingOptionsPanel, "sparkleMultiplier", sparkleMultiplier or 1.0)
     OptionsPanel:UpdateCheckbox(cursorRingOptionsPanel, "mouseTrail", mouseTrail or false)
@@ -1966,12 +2014,25 @@ addon:SetScript("OnEvent", function(self,event,...)
         UpdateRingVisibility()
         UpdateMouseTrailVisibility()
     elseif event=="UNIT_SPELLCAST_START" or event=="UNIT_SPELLCAST_CHANNEL_START" then
-        local unit = ...
-        if unit=="player" then casting = true end
+        local unit, _, spellID = ...
+        if unit=="player" then
+            casting = true
+            if event == "UNIT_SPELLCAST_CHANNEL_START" and FISHING_SPELL_IDS[spellID] then
+                isFishing = true
+                UpdateRingVisibility()
+                UpdateMouseTrailVisibility()
+            end
+        end
     elseif event=="UNIT_SPELLCAST_STOP" or event=="UNIT_SPELLCAST_CHANNEL_STOP" then
         local unit = ...
         if unit=="player" then
             casting = false
+            if event == "UNIT_SPELLCAST_CHANNEL_STOP" and isFishing then
+                isFishing = false
+                UpdateRingVisibility()
+                UpdateMouseTrailVisibility()
+            end
+
             -- Clear cast visual effects immediately on interrupt
             if castFill then
                 castFill:SetAlpha(0)

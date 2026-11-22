@@ -61,6 +61,9 @@ end
 function OptionsPanel:AddSlider(panel, config)
     local slider = CreateFrame("Slider", config.name or nil, panel, "OptionsSliderTemplate")
     slider:SetPoint(config.point or "TOPLEFT", config.anchor, config.relativePoint or "BOTTOMLEFT", config.xOffset or 0, config.yOffset or 0)
+    if config.width then
+        slider:SetWidth(config.width)
+    end
     slider:SetMinMaxValues(config.min or 0, config.max or 100)
     slider:SetValueStep(config.step or 1)
     slider:SetObeyStepOnDrag(true)
